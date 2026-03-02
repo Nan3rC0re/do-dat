@@ -6,6 +6,7 @@ import TaskItem from './task-item'
 import AddTaskForm from './add-task-form'
 import { createTask, updateTaskStatus, deleteTask } from '@/lib/actions/tasks'
 import { toast } from 'sonner'
+import { playSound } from '@/lib/sound'
 import { springs } from '@/lib/motion'
 import type { Task, TaskStatus } from '@/lib/db/schema'
 
@@ -56,6 +57,7 @@ export default function TaskList({ initialTasks, mode }: TaskListProps) {
       createdAt: new Date(),
       updatedAt: new Date(),
     }
+    playSound('add')
     startTransition(async () => {
       dispatch({ type: 'add', task: optimisticTask })
       try {
@@ -67,6 +69,7 @@ export default function TaskList({ initialTasks, mode }: TaskListProps) {
   }
 
   function handleStatusChange(taskId: string, status: TaskStatus) {
+    if (status === 'completed') playSound('complete')
     startTransition(async () => {
       dispatch({ type: 'update_status', taskId, status })
       try {

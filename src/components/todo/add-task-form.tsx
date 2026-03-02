@@ -22,7 +22,7 @@ export default function AddTaskForm({ onAdd }: AddTaskFormProps) {
 
     // Generate a stable ID client-side so the optimistic and server task share the same key
     const id = crypto.randomUUID()
-    const date = dueDate
+    const date = dueDate ?? new Date()
 
     // Clear immediately for snappy UX
     setValue('')

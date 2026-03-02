@@ -2,8 +2,10 @@ type SoundType = 'complete' | 'add' | 'cycle' | 'delete'
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null
-  if ('AudioContext' in window) return new AudioContext()
-  return null
+  if (!('AudioContext' in window)) return null
+  const ctx = new AudioContext()
+  if (ctx.state === 'suspended') ctx.resume()
+  return ctx
 }
 
 function playTone(

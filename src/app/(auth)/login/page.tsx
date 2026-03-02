@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import LoginForm from "@/components/auth/login-form";
-import Image from "next/image";
 
 export default async function LoginPage() {
   const supabase = await createClient();

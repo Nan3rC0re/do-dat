@@ -16,6 +16,13 @@ async function getAuthUserId() {
   return user.id
 }
 
+function revalidateAllTaskPaths() {
+  revalidatePath('/')
+  revalidatePath('/today')
+  revalidatePath('/incoming')
+  revalidatePath('/completed')
+}
+
 const createTaskSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().min(1).max(500),
@@ -35,7 +42,7 @@ export async function createTask(input: { title: string; dueDate?: Date; id?: st
 
   const [task] = await db.insert(tasks).values(insertValues).returning()
 
-  revalidatePath('/')
+  revalidateAllTaskPaths()
   return task
 }
 
@@ -56,8 +63,7 @@ export async function updateTaskStatus(input: {
     .set({ status: parsed.status, updatedAt: new Date() })
     .where(and(eq(tasks.id, parsed.taskId), eq(tasks.userId, userId)))
 
-  revalidatePath('/')
-  revalidatePath('/completed')
+  revalidateAllTaskPaths()
 }
 
 const updateTaskSchema = z.object({
@@ -83,8 +89,7 @@ export async function updateTask(input: {
     })
     .where(and(eq(tasks.id, parsed.taskId), eq(tasks.userId, userId)))
 
-  revalidatePath('/')
-  revalidatePath('/completed')
+  revalidateAllTaskPaths()
 }
 
 export async function deleteTask(input: { taskId: string }) {
@@ -95,6 +100,5 @@ export async function deleteTask(input: { taskId: string }) {
     .delete(tasks)
     .where(and(eq(tasks.id, input.taskId), eq(tasks.userId, userId)))
 
-  revalidatePath('/')
-  revalidatePath('/completed')
+  revalidateAllTaskPaths()
 }

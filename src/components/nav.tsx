@@ -15,23 +15,7 @@ export default function Nav({ userEmail }: NavProps) {
       <Link href="/">
         <Image src="/logo.svg" alt="logo" width={22} height={22} />
       </Link>
-
-      {/* Nav links + avatar — grouped on the right */}
-      <div className="flex items-center gap-5">
-        <Link
-          href="/"
-          className="text-sm text-foreground hover:text-foreground/70 transition-colors"
-        >
-          Inbox
-        </Link>
-        <Link
-          href="/completed"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Completed
-        </Link>
-        <AvatarMenu initial={initial} email={userEmail} />
-      </div>
+      <AvatarMenu initial={initial} email={userEmail} />
     </nav>
   );
 }

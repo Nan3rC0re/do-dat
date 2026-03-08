@@ -1,24 +1,24 @@
-'use client'
+"use client";
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition } from "react";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import TaskDatePicker from './task-date-picker'
-import { updateTask } from '@/lib/actions/tasks'
-import { toast } from 'sonner'
-import type { Task } from '@/lib/db/schema'
+} from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import TaskDatePicker from "./task-date-picker";
+import { updateTask } from "@/lib/actions/tasks";
+import { toast } from "sonner";
+import type { Task } from "@/lib/db/schema";
 
 interface EditTaskSheetProps {
-  task: Task
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onOptimisticUpdate: (title: string, dueDate: Date | null) => void
+  task: Task;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onOptimisticUpdate: (title: string, dueDate: Date | null) => void;
 }
 
 export default function EditTaskSheet({
@@ -27,29 +27,32 @@ export default function EditTaskSheet({
   onOpenChange,
   onOptimisticUpdate,
 }: EditTaskSheetProps) {
-  const [title, setTitle] = useState(task.title)
-  const [dueDate, setDueDate] = useState<Date | null>(task.dueDate ?? null)
-  const [isPending, startTransition] = useTransition()
+  const [title, setTitle] = useState(task.title);
+  const [dueDate, setDueDate] = useState<Date | null>(task.dueDate ?? null);
+  const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!title.trim()) return
+    e.preventDefault();
+    if (!title.trim()) return;
 
-    onOptimisticUpdate(title.trim(), dueDate)
-    onOpenChange(false)
+    onOptimisticUpdate(title.trim(), dueDate);
+    onOpenChange(false);
 
     startTransition(async () => {
       try {
-        await updateTask({ taskId: task.id, title: title.trim(), dueDate })
+        await updateTask({ taskId: task.id, title: title.trim(), dueDate });
       } catch {
-        toast.error('Failed to update task')
+        toast.error("Failed to update task");
       }
-    })
+    });
   }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+      <SheetContent
+        side="bottom"
+        className="rounded-t-2xl pb-8 max-w-2xl w-full px-4 left-1/2 -translate-x-1/2 right-auto"
+      >
         <SheetHeader className="mb-6">
           <SheetTitle>Edit task</SheetTitle>
         </SheetHeader>
@@ -67,12 +70,12 @@ export default function EditTaskSheet({
           <Button
             type="submit"
             disabled={isPending || !title.trim()}
-            className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white"
+            className="w-full h-11 bg-primary hover:bg-primary/90 text-white"
           >
             Save changes
           </Button>
         </form>
       </SheetContent>
     </Sheet>
-  )
+  );
 }

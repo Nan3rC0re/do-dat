@@ -39,7 +39,7 @@ function taskReducer(state: Task[], action: Action): Task[] {
 
 interface TaskListProps {
   initialTasks: Task[]
-  mode: 'inbox' | 'completed'
+  mode: 'inbox' | 'today' | 'incoming' | 'completed'
 }
 
 export default function TaskList({ initialTasks, mode }: TaskListProps) {
@@ -101,7 +101,7 @@ export default function TaskList({ initialTasks, mode }: TaskListProps) {
 
   return (
     <div className="space-y-4">
-      {mode === 'inbox' && <AddTaskForm onAdd={handleAdd} />}
+      {(mode === 'inbox' || mode === 'today') && <AddTaskForm onAdd={handleAdd} />}
 
       <div className="mt-2">
         <AnimatePresence mode="popLayout" initial={false}>
@@ -116,7 +116,11 @@ export default function TaskList({ initialTasks, mode }: TaskListProps) {
             >
               {mode === 'inbox'
                 ? 'All clear. Add something to get started.'
-                : 'No completed tasks yet.'}
+                : mode === 'today'
+                  ? 'Nothing due today.'
+                  : mode === 'incoming'
+                    ? 'No upcoming tasks.'
+                    : 'No completed tasks yet.'}
             </motion.div>
           ) : (
             optimisticTasks.map((task) => (

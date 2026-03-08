@@ -3,27 +3,37 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { z } from 'zod'
 
 export type AuthState = {
   error?: string
 }
 
+const authSchema = z.object({
+  email: z.string().email('Please enter a valid email address.'),
+  password: z.string().min(8, 'Password must be at least 8 characters.'),
+})
+
 export async function loginAction(
   _prevState: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
+  const raw = {
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
+  }
 
-  if (!email || !password) {
-    return { error: 'Email and password are required.' }
+  const parsed = authSchema.safeParse(raw)
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0].message }
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { error } = await supabase.auth.signInWithPassword(parsed.data)
 
   if (error) {
-    return { error: error.message }
+    // Return a generic message to avoid leaking whether an account exists
+    return { error: 'Invalid email or password.' }
   }
 
   revalidatePath('/', 'layout')
@@ -34,15 +44,18 @@ export async function signUpAction(
   _prevState: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
+  const raw = {
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
+  }
 
-  if (!email || !password) {
-    return { error: 'Email and password are required.' }
+  const parsed = authSchema.safeParse(raw)
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0].message }
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signUp({ email, password })
+  const { error } = await supabase.auth.signUp(parsed.data)
 
   if (error) {
     return { error: error.message }
@@ -55,5 +68,6 @@ export async function signUpAction(
 export async function logoutAction() {
   const supabase = await createClient()
   await supabase.auth.signOut()
+  revalidatePath('/', 'layout')
   redirect('/login')
 }

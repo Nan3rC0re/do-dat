@@ -1,20 +1,20 @@
 export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
-import { getActiveTasks } from '@/lib/queries/tasks'
+import { getTodayTasks } from '@/lib/queries/tasks'
 import TaskList from '@/components/todo/task-list'
 import { getUser } from '@/lib/supabase/get-user'
 
-export default async function InboxPage() {
+export default async function TodayPage() {
   const user = await getUser()
   if (!user) redirect('/login')
 
-  const tasks = await getActiveTasks(user.id)
+  const tasks = await getTodayTasks(user.id)
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Inbox</h1>
-      <TaskList initialTasks={tasks} mode="inbox" />
+      <h1 className="text-2xl font-semibold tracking-tight">Today</h1>
+      <TaskList initialTasks={tasks} mode="today" />
     </div>
   )
 }

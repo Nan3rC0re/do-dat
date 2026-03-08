@@ -27,7 +27,7 @@ export default function TaskDatePicker({ value, onChange }: TaskDatePickerProps)
           type="button"
           className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
             hasDate
-              ? 'bg-violet-100 text-violet-700 font-medium'
+              ? 'bg-sky-100 text-sky-700 font-medium'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >

@@ -74,15 +74,13 @@ export default function StatusToggle({ status, onStatusChange }: StatusTogglePro
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <motion.button
+        <button
           type="button"
-          whileTap={{ scale: 0.85 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-          className="flex-shrink-0 w-5 h-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-full"
+          className="flex-shrink-0 w-5 h-5 outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-full"
           aria-label={`Status: ${status}`}
         >
           <StatusIcon status={status} />
-        </motion.button>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-40">
         {STATUS_OPTIONS.map((opt) => (

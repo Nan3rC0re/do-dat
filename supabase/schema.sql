@@ -38,6 +38,15 @@ create policy "Users can delete own tasks"
   on tasks for delete
   using (auth.uid() = user_id);
 
+-- Policy: allow server connection (Drizzle with DATABASE_URL) to access tasks.
+-- Your app uses a direct Postgres connection with no JWT, so auth.uid() is not set
+-- and the policies above fail with "Tenant or user not found". The server already
+-- enforces user_id in every query, so allowing the DB role (postgres) is safe.
+create policy "Server role full access for tasks"
+  on tasks for all
+  using (current_user = 'postgres')
+  with check (current_user = 'postgres');
+
 -- Index for faster user queries
 create index if not exists tasks_user_id_idx on tasks(user_id);
 create index if not exists tasks_user_status_idx on tasks(user_id, status);

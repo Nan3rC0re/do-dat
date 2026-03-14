@@ -87,7 +87,7 @@ export default function TaskItem({
         onTouchMove={handleTouchMove}
         onContextMenu={(e) => e.preventDefault()}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-100 select-none ${
-          isCompleted || showActions ? "bg-neutral-50" : ""
+          isCompleted || showActions ? "hover:bg-neutral-50" : ""
         }`}
       >
         <StatusToggle

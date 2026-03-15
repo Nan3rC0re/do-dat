@@ -8,11 +8,15 @@ import TaskDatePicker from "./task-date-picker";
 
 interface AddTaskFormProps {
   onAdd: (title: string, dueDate: Date | null, id: string) => void;
+  defaultDate?: Date | null;
 }
 
-export default function AddTaskForm({ onAdd }: AddTaskFormProps) {
+export default function AddTaskForm({
+  onAdd,
+  defaultDate,
+}: AddTaskFormProps) {
   const [value, setValue] = useState("");
-  const [dueDate, setDueDate] = useState<Date | null>(null);
+  const [dueDate, setDueDate] = useState<Date | null>(defaultDate ?? null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleSubmit(e: React.FormEvent) {
@@ -24,7 +28,7 @@ export default function AddTaskForm({ onAdd }: AddTaskFormProps) {
     const date = dueDate ?? null;
 
     setValue("");
-    setDueDate(null);
+    setDueDate(defaultDate ?? null);
     inputRef.current?.focus();
 
     onAdd(title, date, id);
@@ -43,18 +47,16 @@ export default function AddTaskForm({ onAdd }: AddTaskFormProps) {
         onClick={handleContainerClick}
         className="cursor-text bg-neutral-100 rounded-2xl overflow-hidden border border-transparent focus-within:border-neutral-200 transition-colors"
       >
-        {/* Input row */}
         <div className="px-4 pt-3 pb-4 py-5">
           <input
             ref={inputRef}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="What do we need to get done?"
-            className="w-full min-w-0 bg-transparent text-base outline-none placeholder:text-muted-foreground overflow-x-auto-auto"
+            className="w-full min-w-0 bg-transparent text-base outline-none placeholder:text-muted-foreground"
           />
         </div>
 
-        {/* Bottom bar */}
         <div className="flex items-center justify-between px-3 pb-2">
           <TaskDatePicker value={dueDate} onChange={setDueDate} />
 

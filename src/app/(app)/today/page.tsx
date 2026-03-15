@@ -13,10 +13,5 @@ export default async function TodayPage() {
   const tasks = await getTodayTasks(user.id)
   const todayLabel = format(new Date(), 'EEE MMM d, yyyy')
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{todayLabel}</h1>
-      <TaskList initialTasks={tasks} mode="today" />
-    </div>
-  )
+  return <TaskList initialTasks={tasks} mode="today" title={todayLabel} defaultDate={new Date()} />
 }

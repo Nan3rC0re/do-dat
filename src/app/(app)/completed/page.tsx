@@ -11,10 +11,5 @@ export default async function CompletedPage() {
 
   const tasks = await getCompletedTasks(user.id)
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Completed</h1>
-      <TaskList initialTasks={tasks} mode="completed" />
-    </div>
-  )
+  return <TaskList initialTasks={tasks} mode="completed" title="Completed" />
 }

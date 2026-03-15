@@ -29,7 +29,11 @@ const createTaskSchema = z.object({
   dueDate: z.date().optional(),
 })
 
-export async function createTask(input: { title: string; dueDate?: Date; id?: string }) {
+export async function createTask(input: {
+  title: string
+  dueDate?: Date
+  id?: string
+}) {
   const userId = await getAuthUserId()
   const parsed = createTaskSchema.parse(input)
 
@@ -80,13 +84,15 @@ export async function updateTask(input: {
   const userId = await getAuthUserId()
   const parsed = updateTaskSchema.parse(input)
 
+  const setValues: Partial<typeof tasks.$inferInsert> = {
+    title: parsed.title,
+    dueDate: parsed.dueDate ?? null,
+    updatedAt: new Date(),
+  }
+
   await db
     .update(tasks)
-    .set({
-      title: parsed.title,
-      dueDate: parsed.dueDate ?? null,
-      updatedAt: new Date(),
-    })
+    .set(setValues)
     .where(and(eq(tasks.id, parsed.taskId), eq(tasks.userId, userId)))
 
   revalidateAllTaskPaths()

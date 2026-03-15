@@ -11,10 +11,5 @@ export default async function IncomingPage() {
 
   const tasks = await getIncomingTasks(user.id)
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Incoming</h1>
-      <TaskList initialTasks={tasks} mode="incoming" />
-    </div>
-  )
+  return <TaskList initialTasks={tasks} mode="incoming" title="Incoming" />
 }

@@ -50,7 +50,7 @@ export default function AddTaskForm({ onAdd }: AddTaskFormProps) {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="What do we need to get done?"
-            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="w-full bg-transparent text-base sm:text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
 

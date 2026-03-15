@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const filters = [
   { label: "Inbox", href: "/" },
@@ -12,25 +12,19 @@ const filters = [
 
 export default function FilterNav() {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
-    <div className="flex items-center gap-2 px-5 py-4 justify-center">
-      {filters.map(({ label, href }) => {
-        const isActive = pathname === href;
-        return (
-          <Link
-            key={href}
-            href={href}
-            className={`py-2 px-3 text-sm rounded-full transition-colors ${
-              isActive
-                ? "bg-neutral-100 text-primary border-2 border-primary font-medium"
-                : "text-muted-foreground hover:text-foreground bg-white border border-neutral-200"
-            }`}
-          >
-            {label}
-          </Link>
-        );
-      })}
+    <div className="px-5 py-4 flex justify-center">
+      <Tabs value={pathname} onValueChange={(v) => router.push(v)}>
+        <TabsList>
+          {filters.map(({ label, href }) => (
+            <TabsTrigger key={href} value={href}>
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
     </div>
   );
 }

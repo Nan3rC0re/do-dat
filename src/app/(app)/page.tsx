@@ -11,10 +11,5 @@ export default async function InboxPage() {
 
   const tasks = await getActiveTasks(user.id)
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Inbox</h1>
-      <TaskList initialTasks={tasks} mode="inbox" />
-    </div>
-  )
+  return <TaskList initialTasks={tasks} mode="inbox" title="Inbox" />
 }

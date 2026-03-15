@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "motion/react";
+import { springs } from "@/lib/motion";
 
 const filters = [
   { label: "Inbox", href: "/" },
@@ -16,15 +17,28 @@ export default function FilterNav() {
 
   return (
     <div className="px-5 py-4 flex justify-center">
-      <Tabs value={pathname} onValueChange={(v) => router.push(v)}>
-        <TabsList>
-          {filters.map(({ label, href }) => (
-            <TabsTrigger key={href} value={href}>
-              {label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      <div className="inline-flex items-center gap-0.5 rounded-full bg-muted p-[3px] h-9">
+        {filters.map(({ label, href }) => {
+          const isActive = pathname === href;
+          return (
+            <button
+              key={href}
+              onClick={() => router.push(href)}
+              className="relative px-3 py-1 text-sm font-medium rounded-full transition-colors duration-100 whitespace-nowrap focus-visible:outline-none"
+              style={{ color: isActive ? "var(--foreground)" : "var(--muted-foreground)" }}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="tab-pill"
+                  className="absolute inset-0 rounded-full bg-background shadow-sm"
+                  transition={springs.smooth}
+                />
+              )}
+              <span className="relative z-10">{label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -56,11 +56,11 @@ function StatusIcon({ status }: { status: TaskStatus }) {
 }
 
 function StatusIndicator({ status }: { status: TaskStatus }) {
-  if (status === 'not_started') return <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 flex-shrink-0" />
-  if (status === 'in_progress') return <div className="w-3.5 h-3.5 rounded-full border-2 border-dashed border-yellow-400 flex-shrink-0" />
+  if (status === 'not_started') return <div className="w-3.5 h-3.5 rounded-full border-2 border-neutral-300 shrink-0" />
+  if (status === 'in_progress') return <div className="w-3.5 h-3.5 rounded-full border-2 border-dashed border-yellow-400 shrink-0" />
   return (
-    <div className="w-3.5 h-3.5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-      <Check className="w-2 h-2 text-white" strokeWidth={3} />
+    <div className="w-3.5 h-3.5 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+      <Check className="w-0.5 h-0.5 text-white" strokeWidth={3} />
     </div>
   )
 }
@@ -76,7 +76,7 @@ export default function StatusToggle({ status, onStatusChange }: StatusTogglePro
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex-shrink-0 w-5 h-5 outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-full"
+          className="shrink-0 w-5 h-5 outline-none rounded-full"
           aria-label={`Status: ${status}`}
         >
           <StatusIcon status={status} />

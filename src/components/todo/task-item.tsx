@@ -20,6 +20,7 @@ const SNAP_THRESHOLD = 60;
 
 interface TaskItemProps {
   task: Task;
+  mode: "inbox" | "today" | "incoming" | "completed";
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onDelete: (taskId: string) => void;
   onUpdate: (taskId: string, title: string, dueDate: Date | null) => void;
@@ -34,6 +35,7 @@ function formatTaskDate(date: Date | string | null | undefined): string | null {
 
 export default function TaskItem({
   task,
+  mode,
   onStatusChange,
   onDelete,
   onUpdate,
@@ -102,7 +104,10 @@ export default function TaskItem({
   }
 
   const isCompleted = task.status === "completed";
-  const dateLabel = formatTaskDate(task.dueDate);
+  const dateLabel =
+    mode === "completed"
+      ? formatTaskDate(task.updatedAt)
+      : formatTaskDate(task.dueDate);
   const showActions = isHovered || menuOpen;
 
   function handleOptimisticUpdate(title: string, dueDate: Date | null) {
@@ -135,7 +140,10 @@ export default function TaskItem({
         >
           <button
             data-no-swipe="true"
-            onClick={() => { closeSwipe(); setEditOpen(true); }}
+            onClick={() => {
+              closeSwipe();
+              setEditOpen(true);
+            }}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 bg-primary text-white text-xs font-medium"
           >
             <Pencil className="w-4 h-4" />
@@ -143,7 +151,10 @@ export default function TaskItem({
           </button>
           <button
             data-no-swipe="true"
-            onClick={() => { closeSwipe(); onDelete(task.id); }}
+            onClick={() => {
+              closeSwipe();
+              onDelete(task.id);
+            }}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 bg-destructive text-white text-xs font-medium"
           >
             <Trash2 className="w-4 h-4" />
@@ -153,7 +164,12 @@ export default function TaskItem({
 
         {/* Task row */}
         <motion.div
-          style={{ x, backgroundColor: isActiveSwiped ? "var(--color-neutral-100, #f5f5f5)" : "white" }}
+          style={{
+            x,
+            backgroundColor: isActiveSwiped
+              ? "var(--color-neutral-100, #f5f5f5)"
+              : "white",
+          }}
           onHoverStart={() => setIsHovered(true)}
           onHoverEnd={() => setIsHovered(false)}
           onTouchStart={onTouchStart}
@@ -161,7 +177,7 @@ export default function TaskItem({
           onTouchEnd={onTouchEnd}
           onContextMenu={(e) => e.preventDefault()}
           className={`relative z-10 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-100 select-none ${
-            !isActiveSwiped && (isCompleted || showActions) ? "hover:bg-neutral-50" : ""
+            !isActiveSwiped ? "hover:bg-neutral-100" : ""
           }`}
         >
           <div data-no-swipe="true">
@@ -189,7 +205,9 @@ export default function TaskItem({
             )}
 
             {/* Desktop-only dropdown */}
-            <div className={`hidden sm:block ${showActions ? "visible" : "invisible"}`}>
+            <div
+              className={`hidden sm:block ${showActions ? "visible" : "invisible"}`}
+            >
               <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
                 <DropdownMenuTrigger asChild>
                   <button

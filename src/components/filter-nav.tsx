@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { springs } from "@/lib/motion";
@@ -14,6 +15,10 @@ const filters = [
 export default function FilterNav() {
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    filters.forEach(({ href }) => router.prefetch(href));
+  }, [router]);
 
   return (
     <div className="px-5 py-4 flex justify-center">

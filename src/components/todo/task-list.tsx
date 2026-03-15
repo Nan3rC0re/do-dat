@@ -48,13 +48,19 @@ function taskReducer(state: Task[], action: Action): Task[] {
 interface TaskListProps {
   initialTasks: Task[];
   mode: "inbox" | "today" | "incoming" | "completed";
+  title: string;
+  defaultDate?: Date | null;
 }
 
-export default function TaskList({ initialTasks, mode }: TaskListProps) {
+export default function TaskList({
+  initialTasks,
+  mode,
+  title,
+  defaultDate,
+}: TaskListProps) {
   const [optimisticTasks, dispatch] = useOptimistic(initialTasks, taskReducer);
   const [, startTransition] = useTransition();
 
-  // All optimistic dispatches must happen inside startTransition
   function handleAdd(title: string, dueDate: Date | null, id: string) {
     const optimisticTask: Task = {
       id,
@@ -109,6 +115,7 @@ export default function TaskList({ initialTasks, mode }: TaskListProps) {
   const visibleTasks = mode === "completed"
     ? optimisticTasks
     : optimisticTasks.filter((t) => t.status !== "completed");
+
   const sortedTasks = [...visibleTasks].sort((a, b) => {
     const statusDiff = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
     if (statusDiff !== 0) return statusDiff;
@@ -119,8 +126,10 @@ export default function TaskList({ initialTasks, mode }: TaskListProps) {
 
   return (
     <div className="space-y-4 pb-16">
+      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+
       {(mode === "inbox" || mode === "today") && (
-        <AddTaskForm onAdd={handleAdd} />
+        <AddTaskForm onAdd={handleAdd} defaultDate={defaultDate} />
       )}
 
       <div className="mt-2">

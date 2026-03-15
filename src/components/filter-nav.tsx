@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { motion } from "motion/react";
+import { springs } from "@/lib/motion";
 
 const filters = [
   { label: "Inbox", href: "/" },
@@ -12,25 +13,32 @@ const filters = [
 
 export default function FilterNav() {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
-    <div className="flex items-center gap-2 px-5 py-4 justify-center">
-      {filters.map(({ label, href }) => {
-        const isActive = pathname === href;
-        return (
-          <Link
-            key={href}
-            href={href}
-            className={`py-2 px-3 text-sm rounded-full transition-colors ${
-              isActive
-                ? "bg-neutral-100 text-primary border-2 border-primary font-medium"
-                : "text-muted-foreground hover:text-foreground bg-white border border-neutral-200"
-            }`}
-          >
-            {label}
-          </Link>
-        );
-      })}
+    <div className="px-5 py-4 flex justify-center">
+      <div className="inline-flex items-center gap-0.5 rounded-full bg-muted p-[3px] h-9">
+        {filters.map(({ label, href }) => {
+          const isActive = pathname === href;
+          return (
+            <button
+              key={href}
+              onClick={() => router.push(href)}
+              className="relative px-3 py-1 text-sm font-medium rounded-full transition-colors duration-100 whitespace-nowrap focus-visible:outline-none"
+              style={{ color: isActive ? "var(--foreground)" : "var(--muted-foreground)" }}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="tab-pill"
+                  className="absolute inset-0 rounded-full bg-background shadow-sm"
+                  transition={springs.smooth}
+                />
+              )}
+              <span className="relative z-10">{label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

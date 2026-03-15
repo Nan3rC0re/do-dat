@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion, useMotionValue, animate } from "motion/react";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { format, isToday } from "date-fns";
 import {
   DropdownMenu,
@@ -133,9 +133,9 @@ export default function TaskItem({
         transition={springs.smooth}
         className="relative overflow-hidden rounded-xl"
       >
-        {/* Action buttons revealed on swipe (mobile) */}
+        {/* Action buttons revealed on swipe (mobile only) */}
         <div
-          className="absolute inset-y-0 right-0 z-0 flex items-stretch sm:hidden"
+          className="absolute inset-y-0 right-0 z-0 flex items-center justify-end gap-1  pr-1 sm:hidden"
           style={{ width: ACTION_WIDTH }}
         >
           <button
@@ -144,9 +144,8 @@ export default function TaskItem({
               closeSwipe();
               setEditOpen(true);
             }}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 bg-primary text-white text-xs font-medium"
+            className="px-4 py-1.5 rounded-full bg-primary text-white text-xs font-medium"
           >
-            <Pencil className="w-4 h-4" />
             Edit
           </button>
           <button
@@ -155,9 +154,8 @@ export default function TaskItem({
               closeSwipe();
               onDelete(task.id);
             }}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 bg-destructive text-white text-xs font-medium"
+            className="px-4 py-1.5 rounded-full bg-destructive text-white text-xs font-medium"
           >
-            <Trash2 className="w-4 h-4" />
             Delete
           </button>
         </div>
@@ -204,7 +202,7 @@ export default function TaskItem({
               </span>
             )}
 
-            {/* Desktop-only dropdown */}
+            {/* Desktop-only dropdown (hover) */}
             <div
               className={`hidden sm:block ${showActions ? "visible" : "invisible"}`}
             >

@@ -5,18 +5,25 @@ import { ArrowUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { springs } from "@/lib/motion";
 import TaskDatePicker from "./task-date-picker";
+import GroupPicker from "./group-picker";
+import type { Group } from "@/lib/db/schema";
 
 interface AddTaskFormProps {
-  onAdd: (title: string, dueDate: Date | null, id: string) => void;
+  onAdd: (title: string, dueDate: Date | null, id: string, groupId: string | null) => void;
   defaultDate?: Date | null;
+  groups?: Group[];
+  onGroupCreated?: (group: Group) => void;
 }
 
 export default function AddTaskForm({
   onAdd,
   defaultDate,
+  groups,
+  onGroupCreated,
 }: AddTaskFormProps) {
   const [value, setValue] = useState("");
   const [dueDate, setDueDate] = useState<Date | null>(defaultDate ?? null);
+  const [groupId, setGroupId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleSubmit(e: React.FormEvent) {
@@ -29,9 +36,10 @@ export default function AddTaskForm({
 
     setValue("");
     setDueDate(defaultDate ?? null);
+    setGroupId(null);
     inputRef.current?.focus();
 
-    onAdd(title, date, id);
+    onAdd(title, date, id, groupId);
   }
 
   const hasContent = value.trim().length > 0;
@@ -58,7 +66,17 @@ export default function AddTaskForm({
         </div>
 
         <div className="flex items-center justify-between px-3 pb-2">
-          <TaskDatePicker value={dueDate} onChange={setDueDate} />
+          <div className="flex items-center gap-1">
+            <TaskDatePicker value={dueDate} onChange={setDueDate} />
+            {groups !== undefined && (
+              <GroupPicker
+                groups={groups}
+                value={groupId}
+                onChange={setGroupId}
+                onGroupCreated={(group) => onGroupCreated?.(group)}
+              />
+            )}
+          </div>
 
           <AnimatePresence>
             {hasContent && (

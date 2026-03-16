@@ -27,12 +27,14 @@ const createTaskSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().min(1).max(500),
   dueDate: z.date().optional(),
+  groupId: z.string().uuid().nullable().optional(),
 })
 
 export async function createTask(input: {
   title: string
   dueDate?: Date
   id?: string
+  groupId?: string | null
 }) {
   const userId = await getAuthUserId()
   const parsed = createTaskSchema.parse(input)
@@ -41,6 +43,7 @@ export async function createTask(input: {
     userId,
     title: parsed.title,
     dueDate: parsed.dueDate ?? null,
+    groupId: parsed.groupId ?? null,
   }
   if (parsed.id) insertValues.id = parsed.id
 

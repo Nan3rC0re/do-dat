@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useTransition, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { format } from "date-fns";
 import TaskItem from "./task-item";
@@ -9,7 +9,7 @@ import { createTask, updateTaskStatus, deleteTask } from "@/lib/actions/tasks";
 import { toast } from "sonner";
 import { playSound } from "@/lib/sound";
 import { springs } from "@/lib/motion";
-import type { Task, TaskStatus } from "@/lib/db/schema";
+import type { Task, TaskStatus, Group } from "@/lib/db/schema";
 
 type Action =
   | { type: "add"; task: Task }
@@ -50,6 +50,7 @@ interface TaskListProps {
   mode: "inbox" | "today" | "incoming" | "completed";
   title: string;
   defaultDate?: Date | null;
+  initialGroups?: Group[];
 }
 
 export default function TaskList({
@@ -57,17 +58,20 @@ export default function TaskList({
   mode,
   title,
   defaultDate,
+  initialGroups = [],
 }: TaskListProps) {
   const [optimisticTasks, dispatch] = useOptimistic(initialTasks, taskReducer);
   const [, startTransition] = useTransition();
+  const [groups, setGroups] = useState<Group[]>(initialGroups);
 
-  function handleAdd(title: string, dueDate: Date | null, id: string) {
+  function handleAdd(title: string, dueDate: Date | null, id: string, groupId: string | null) {
     const optimisticTask: Task = {
       id,
       userId: "",
       title,
       status: "not_started",
       dueDate,
+      groupId: groupId ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -75,7 +79,7 @@ export default function TaskList({
     startTransition(async () => {
       dispatch({ type: "add", task: optimisticTask });
       try {
-        await createTask({ title, dueDate: dueDate ?? undefined, id });
+        await createTask({ title, dueDate: dueDate ?? undefined, id, groupId: groupId ?? undefined });
       } catch {
         toast.error("Failed to add task");
       }
@@ -123,13 +127,30 @@ export default function TaskList({
   });
 
   const isEmpty = sortedTasks.length === 0;
+  const showAddForm = mode === "today" || mode === "incoming";
+
+  // group buckets for completed view (reuse variable name is fine here, it's a different shape)
+  const completedGroups: { label: string; tasks: Task[] }[] = [];
+  if (mode === "completed") {
+    for (const task of sortedTasks) {
+      const label = format(new Date(task.updatedAt), "MMMM yyyy");
+      const last = completedGroups[completedGroups.length - 1];
+      if (last?.label === label) last.tasks.push(task);
+      else completedGroups.push({ label, tasks: [task] });
+    }
+  }
 
   return (
     <div className="space-y-4 pb-16">
       <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
 
-      {(mode === "inbox" || mode === "today") && (
-        <AddTaskForm onAdd={handleAdd} defaultDate={defaultDate} />
+      {showAddForm && (
+        <AddTaskForm
+          onAdd={handleAdd}
+          defaultDate={defaultDate}
+          groups={groups}
+          onGroupCreated={(g) => setGroups((prev) => [...prev, g])}
+        />
       )}
 
       <div className="mt-2">
@@ -143,41 +164,30 @@ export default function TaskList({
               transition={{ ...springs.gentle, delay: 0.1 }}
               className="text-center py-12 text-muted-foreground text-sm"
             >
-              {mode === "inbox"
-                ? "All clear. Add something to get started."
-                : mode === "today"
-                  ? "Nothing due today."
-                  : mode === "incoming"
-                    ? "No upcoming tasks."
-                    : "No completed tasks yet."}
+              {mode === "today"
+                ? "Nothing due today."
+                : mode === "incoming"
+                  ? "No upcoming tasks."
+                  : "No completed tasks yet."}
             </motion.div>
           ) : mode === "completed" ? (
-            (() => {
-              const groups: { label: string; tasks: Task[] }[] = [];
-              for (const task of sortedTasks) {
-                const label = format(new Date(task.updatedAt), "MMMM yyyy");
-                const last = groups[groups.length - 1];
-                if (last?.label === label) last.tasks.push(task);
-                else groups.push({ label, tasks: [task] });
-              }
-              return groups.map((group) => (
-                <div key={group.label}>
-                  <div className="text-base font-semibold text-foreground px-1 pt-4 pb-1">
-                    {group.label}
-                  </div>
-                  {group.tasks.map((task) => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                      mode={mode}
-                      onStatusChange={handleStatusChange}
-                      onDelete={handleDelete}
-                      onUpdate={handleUpdate}
-                    />
-                  ))}
+            completedGroups.map((group) => (
+              <div key={group.label}>
+                <div className="text-base font-semibold text-foreground px-1 pt-4 pb-1">
+                  {group.label}
                 </div>
-              ));
-            })()
+                {group.tasks.map((task) => (
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    mode={mode}
+                    onStatusChange={handleStatusChange}
+                    onDelete={handleDelete}
+                    onUpdate={handleUpdate}
+                  />
+                ))}
+              </div>
+            ))
           ) : (
             sortedTasks.map((task) => (
               <TaskItem

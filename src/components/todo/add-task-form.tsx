@@ -53,7 +53,7 @@ export default function AddTaskForm({
     <form onSubmit={handleSubmit}>
       <div
         onClick={handleContainerClick}
-        className="cursor-text bg-neutral-100 rounded-2xl overflow-hidden border border-transparent focus-within:border-neutral-200 transition-colors"
+        className="cursor-text bg-neutral-100 rounded-2xl border border-transparent focus-within:border-neutral-200 transition-colors"
       >
         <div className="px-4 pt-3 pb-4 py-5">
           <input

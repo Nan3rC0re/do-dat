@@ -143,11 +143,19 @@ export default function TaskList({
     ? optimisticTasks
     : optimisticTasks.filter((t) => t.status !== "completed" || exitingIds.has(t.id));
 
-  const sortedTasks = [...visibleTasks].sort((a, b) => {
-    const statusDiff = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
-    if (statusDiff !== 0) return statusDiff;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  const sortedTasks = mode === "completed"
+    // Completed view: most recently completed first
+    ? [...visibleTasks].sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      )
+    : [...visibleTasks].sort((a, b) => {
+        // Exiting tasks keep their pre-completion rank so they don't jump to the bottom
+        const rankA = exitingIds.has(a.id) ? 1 : (STATUS_ORDER[a.status] ?? 3);
+        const rankB = exitingIds.has(b.id) ? 1 : (STATUS_ORDER[b.status] ?? 3);
+        const statusDiff = rankA - rankB;
+        if (statusDiff !== 0) return statusDiff;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
 
   const isEmpty = sortedTasks.length === 0;
   const showAddForm = mode === "today" || mode === "incoming";

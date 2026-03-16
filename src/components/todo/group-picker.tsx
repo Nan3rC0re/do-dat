@@ -68,19 +68,45 @@ export default function GroupPicker({
             : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        <Tag className="w-3.5 h-3.5 flex-shrink-0" />
+        <Tag className="w-3.5 h-3.5 shrink-0" />
         <span>{selectedGroup ? selectedGroup.name : "Group"}</span>
       </button>
 
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 4 }}
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 4 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={springs.smooth}
-            className="absolute bottom-full left-0 mb-2 w-52 bg-white border border-neutral-200 rounded-xl shadow-lg z-50 overflow-hidden"
+            className="absolute top-full left-0 mt-1 w-52 bg-white border border-neutral-200 rounded-xl shadow-lg z-50 overflow-hidden"
           >
+            {/* New group input at the top */}
+            <div className="px-3 py-2 flex items-center gap-1.5 border-b border-neutral-100">
+              <input
+                ref={inputRef}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); handleCreate(); }
+                  if (e.key === "Escape") setOpen(false);
+                }}
+                placeholder="New group…"
+                className="flex-1 text-xs outline-none bg-transparent placeholder:text-muted-foreground"
+              />
+              {newName.trim() && (
+                <button
+                  type="button"
+                  onClick={handleCreate}
+                  disabled={creating}
+                  className="text-xs text-amber-600 font-medium disabled:opacity-50 shrink-0"
+                >
+                  Add
+                </button>
+              )}
+            </div>
+
+            {/* Existing groups */}
             {selectedGroup && (
               <button
                 type="button"
@@ -104,30 +130,6 @@ export default function GroupPicker({
                 {group.name}
               </button>
             ))}
-
-            <div className="border-t border-neutral-100 px-3 py-2 flex items-center gap-1.5">
-              <input
-                ref={inputRef}
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); handleCreate(); }
-                  if (e.key === "Escape") setOpen(false);
-                }}
-                placeholder="New group…"
-                className="flex-1 text-xs outline-none bg-transparent placeholder:text-muted-foreground"
-              />
-              {newName.trim() && (
-                <button
-                  type="button"
-                  onClick={handleCreate}
-                  disabled={creating}
-                  className="text-xs text-amber-600 font-medium disabled:opacity-50"
-                >
-                  Add
-                </button>
-              )}
-            </div>
           </motion.div>
         )}
       </AnimatePresence>

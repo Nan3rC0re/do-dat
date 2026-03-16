@@ -31,7 +31,7 @@ export default function TaskDatePicker({ value, onChange }: TaskDatePickerProps)
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <CalendarIcon className="w-3.5 h-3.5 flex-shrink-0" />
+          <CalendarIcon className="w-3.5 h-3.5 shrink-0" />
           <span>{hasDate ? formatDate(value!) : 'Date'}</span>
         </button>
       </PopoverTrigger>

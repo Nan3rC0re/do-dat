@@ -25,11 +25,13 @@ interface TaskItemProps {
   onUpdate: (taskId: string, title: string, dueDate: Date | null) => void;
 }
 
-// Returns null for today (hide "Today" label), formatted date otherwise
-function formatTaskDate(date: Date | string | null | undefined): string | null {
+function formatTaskDate(
+  date: Date | string | null | undefined,
+  showToday = false,
+): string | null {
   if (!date) return null;
   const d = typeof date === "string" ? new Date(date) : date;
-  if (isToday(d)) return null;
+  if (isToday(d)) return showToday ? "Today" : null;
   return format(d, "MMM d");
 }
 
@@ -63,8 +65,8 @@ export default function TaskItem({
   const isCompleted = task.status === "completed";
   const dateLabel =
     mode === "completed"
-      ? formatTaskDate(task.updatedAt)
-      : formatTaskDate(task.dueDate);
+      ? formatTaskDate(task.updatedAt, true)  // show "Today" for tasks completed today
+      : formatTaskDate(task.dueDate);          // hide "Today" — user already knows today's date
   const showActions = isHovered || menuOpen || isTouchSelected;
   const showMeta = !!(dateLabel || group);
 

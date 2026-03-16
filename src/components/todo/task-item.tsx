@@ -62,7 +62,8 @@ export default function TaskItem({
     return () => document.removeEventListener("touchstart", handleTouchOutside);
   }, []);
 
-  const isCompleted = task.status === "completed";
+  // isExiting means the task is mid-completion animation (status not yet updated in optimistic state)
+  const isCompleted = task.status === "completed" || isExiting;
   const dateLabel =
     mode === "completed"
       ? formatTaskDate(task.updatedAt, true)  // show "Today" for tasks completed today
@@ -105,7 +106,7 @@ export default function TaskItem({
         {/* Status circle — nudged down to align with first line of text */}
         <div className="pt-0.5 shrink-0">
           <StatusToggle
-            status={task.status}
+            status={isExiting ? "completed" : task.status}
             onStatusChange={(status) => onStatusChange(task.id, status)}
           />
         </div>

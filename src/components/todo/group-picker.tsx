@@ -62,7 +62,7 @@ export default function GroupPicker({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full transition-colors duration-150 ${
+        className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
           selectedGroup
             ? "bg-amber-100 text-amber-700 font-medium"
             : "text-muted-foreground hover:text-foreground"

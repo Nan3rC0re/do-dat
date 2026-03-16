@@ -60,8 +60,8 @@ export default function TaskList({
   const [optimisticTasks, dispatch] = useOptimistic(initialTasks, taskReducer);
   const [, startTransition] = useTransition();
   const [groups, setGroups] = useState<Group[]>(initialGroups);
-  // Tasks that have just been marked complete — kept visible for the strikethrough animation
-  const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
+  // Tasks mid-completion animation — status NOT yet updated in optimistic state so sort is unaffected
+  const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
 
   function handleAdd(title: string, dueDate: Date | null, id: string, groupId: string | null) {
     const optimisticTask: Task = {
@@ -86,25 +86,25 @@ export default function TaskList({
   }
 
   function handleStatusChange(taskId: string, status: TaskStatus) {
-    // When completing a task in a non-completed view, play the strikethrough animation first
+    // When completing in a non-completed view: animate strikethrough in-place first,
+    // then exit. We deliberately do NOT optimistic-dispatch yet so the task's status
+    // stays unchanged in state — preserving its current sort position.
     if (status === "completed" && mode !== "completed") {
       playSound("complete");
-      startTransition(async () => {
-        dispatch({ type: "update_status", taskId, status });
-        try {
-          await updateTaskStatus({ taskId, status });
-        } catch {
-          toast.error("Failed to update status");
-        }
+      setCompletingIds((prev) => new Set([...prev, taskId]));
+
+      // Fire the server update in parallel (revalidation will sync after animation)
+      updateTaskStatus({ taskId, status }).catch(() => {
+        toast.error("Failed to update status");
+        setCompletingIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
       });
-      // Keep the task visible for the animation duration, then let it exit
-      setExitingIds((prev) => new Set([...prev, taskId]));
+
+      // After animation, dispatch the optimistic removal so AnimatePresence exits it
       setTimeout(() => {
-        setExitingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(taskId);
-          return next;
+        startTransition(() => {
+          dispatch({ type: "update_status", taskId, status });
         });
+        setCompletingIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
       }, COMPLETE_EXIT_DELAY);
       return;
     }
@@ -138,10 +138,11 @@ export default function TaskList({
 
   const STATUS_ORDER: Record<string, number> = { in_progress: 0, not_started: 1 };
 
-  // Keep exiting tasks visible until animation completes
+  // completingIds tasks still have their original status in optimistic state (dispatch deferred),
+  // so they sort naturally at their original position — no special casing needed.
   const visibleTasks = mode === "completed"
     ? optimisticTasks
-    : optimisticTasks.filter((t) => t.status !== "completed" || exitingIds.has(t.id));
+    : optimisticTasks.filter((t) => t.status !== "completed" || completingIds.has(t.id));
 
   const sortedTasks = mode === "completed"
     // Completed view: most recently completed first
@@ -149,10 +150,7 @@ export default function TaskList({
         (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       )
     : [...visibleTasks].sort((a, b) => {
-        // Exiting tasks keep their pre-completion rank so they don't jump to the bottom
-        const rankA = exitingIds.has(a.id) ? 1 : (STATUS_ORDER[a.status] ?? 3);
-        const rankB = exitingIds.has(b.id) ? 1 : (STATUS_ORDER[b.status] ?? 3);
-        const statusDiff = rankA - rankB;
+        const statusDiff = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
         if (statusDiff !== 0) return statusDiff;
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
@@ -213,7 +211,7 @@ export default function TaskList({
                     task={task}
                     mode={mode}
                     group={groups.find((g) => g.id === task.groupId)}
-                    isExiting={exitingIds.has(task.id)}
+                    isExiting={completingIds.has(task.id)}
                     onStatusChange={handleStatusChange}
                     onDelete={handleDelete}
                     onUpdate={handleUpdate}
@@ -228,7 +226,7 @@ export default function TaskList({
                 task={task}
                 mode={mode}
                 group={groups.find((g) => g.id === task.groupId)}
-                isExiting={exitingIds.has(task.id)}
+                isExiting={completingIds.has(task.id)}
                 onStatusChange={handleStatusChange}
                 onDelete={handleDelete}
                 onUpdate={handleUpdate}

@@ -12,3 +12,14 @@ export async function getGroups(userId: string): Promise<Group[]> {
     .where(eq(groups.userId, userId))
     .orderBy(asc(groups.createdAt))
 }
+
+// Returns groups for the user, seeding a default "Groceries" group for new users
+export async function getOrSeedGroups(userId: string): Promise<Group[]> {
+  const existing = await getGroups(userId)
+  if (existing.length > 0) return existing
+  const [groceries] = await db
+    .insert(groups)
+    .values({ userId, name: 'Groceries' })
+    .returning()
+  return [groceries]
+}

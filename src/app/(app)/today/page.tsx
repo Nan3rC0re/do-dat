@@ -1,34 +1,35 @@
 export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { getTodayTasks } from '@/lib/queries/tasks'
-import { getGroups } from '@/lib/queries/groups'
+import { getOrSeedGroups } from '@/lib/queries/groups'
 import TaskList from '@/components/todo/task-list'
 import TodayDateSync from '@/components/todo/today-date-sync'
 import { getUser } from '@/lib/supabase/get-user'
 import { format, parseISO } from 'date-fns'
 
-interface TodayPageProps {
-  searchParams: Promise<{ date?: string; start?: string; end?: string }>
-}
-
-export default async function TodayPage({ searchParams }: TodayPageProps) {
+export default async function TodayPage() {
   const user = await getUser()
   if (!user) redirect('/login')
 
-  const { date, start, end } = await searchParams
+  // Read client-provided date boundaries from cookies (set by TodayDateSync)
+  const cookieStore = await cookies()
+  const dateStr = cookieStore.get('today-date')?.value
+  const startStr = cookieStore.get('today-start')?.value
+  const endStr = cookieStore.get('today-end')?.value
 
-  const startDate = start ? new Date(start) : undefined
-  const endDate = end ? new Date(end) : undefined
+  const startDate = startStr ? new Date(decodeURIComponent(startStr)) : undefined
+  const endDate = endStr ? new Date(decodeURIComponent(endStr)) : undefined
 
   const [tasks, groups] = await Promise.all([
     getTodayTasks(user.id, startDate, endDate),
-    getGroups(user.id),
+    getOrSeedGroups(user.id),
   ])
 
-  // Use client-provided date string for the label (avoids server UTC mismatch)
-  const todayLabel = date
-    ? format(parseISO(date), 'EEE MMM d, yyyy')
+  // Use client-provided date string for the label — avoids server UTC mismatch
+  const todayLabel = dateStr
+    ? format(parseISO(dateStr), 'EEE MMM d, yyyy')
     : format(new Date(), 'EEE MMM d, yyyy')
 
   return (

@@ -11,6 +11,8 @@ import { playSound } from "@/lib/sound";
 import { springs } from "@/lib/motion";
 import type { Task, TaskStatus, Group } from "@/lib/db/schema";
 
+const COMPLETE_EXIT_DELAY = 600; // ms — time for strikethrough animation before task exits
+
 type Action =
   | { type: "add"; task: Task }
   | { type: "update_status"; taskId: string; status: TaskStatus }
@@ -30,12 +32,7 @@ function taskReducer(state: Task[], action: Action): Task[] {
     case "update_task":
       return state.map((t) =>
         t.id === action.taskId
-          ? {
-              ...t,
-              title: action.title,
-              dueDate: action.dueDate,
-              updatedAt: new Date(),
-            }
+          ? { ...t, title: action.title, dueDate: action.dueDate, updatedAt: new Date() }
           : t,
       );
     case "delete":
@@ -63,6 +60,8 @@ export default function TaskList({
   const [optimisticTasks, dispatch] = useOptimistic(initialTasks, taskReducer);
   const [, startTransition] = useTransition();
   const [groups, setGroups] = useState<Group[]>(initialGroups);
+  // Tasks that have just been marked complete — kept visible for the strikethrough animation
+  const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
 
   function handleAdd(title: string, dueDate: Date | null, id: string, groupId: string | null) {
     const optimisticTask: Task = {
@@ -87,6 +86,28 @@ export default function TaskList({
   }
 
   function handleStatusChange(taskId: string, status: TaskStatus) {
+    // When completing a task in a non-completed view, play the strikethrough animation first
+    if (status === "completed" && mode !== "completed") {
+      playSound("complete");
+      startTransition(async () => {
+        dispatch({ type: "update_status", taskId, status });
+        try {
+          await updateTaskStatus({ taskId, status });
+        } catch {
+          toast.error("Failed to update status");
+        }
+      });
+      // Keep the task visible for the animation duration, then let it exit
+      setExitingIds((prev) => new Set([...prev, taskId]));
+      setTimeout(() => {
+        setExitingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(taskId);
+          return next;
+        });
+      }, COMPLETE_EXIT_DELAY);
+      return;
+    }
     if (status === "completed") playSound("complete");
     startTransition(async () => {
       dispatch({ type: "update_status", taskId, status });
@@ -116,9 +137,11 @@ export default function TaskList({
   }
 
   const STATUS_ORDER: Record<string, number> = { in_progress: 0, not_started: 1 };
+
+  // Keep exiting tasks visible until animation completes
   const visibleTasks = mode === "completed"
     ? optimisticTasks
-    : optimisticTasks.filter((t) => t.status !== "completed");
+    : optimisticTasks.filter((t) => t.status !== "completed" || exitingIds.has(t.id));
 
   const sortedTasks = [...visibleTasks].sort((a, b) => {
     const statusDiff = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
@@ -129,14 +152,14 @@ export default function TaskList({
   const isEmpty = sortedTasks.length === 0;
   const showAddForm = mode === "today" || mode === "incoming";
 
-  // group buckets for completed view (reuse variable name is fine here, it's a different shape)
-  const completedGroups: { label: string; tasks: Task[] }[] = [];
+  // Group completed tasks by month for the completed view
+  const completedMonths: { label: string; tasks: Task[] }[] = [];
   if (mode === "completed") {
     for (const task of sortedTasks) {
       const label = format(new Date(task.updatedAt), "MMMM yyyy");
-      const last = completedGroups[completedGroups.length - 1];
+      const last = completedMonths[completedMonths.length - 1];
       if (last?.label === label) last.tasks.push(task);
-      else completedGroups.push({ label, tasks: [task] });
+      else completedMonths.push({ label, tasks: [task] });
     }
   }
 
@@ -171,16 +194,18 @@ export default function TaskList({
                   : "No completed tasks yet."}
             </motion.div>
           ) : mode === "completed" ? (
-            completedGroups.map((group) => (
-              <div key={group.label}>
+            completedMonths.map((month) => (
+              <div key={month.label}>
                 <div className="text-base font-semibold text-foreground px-1 pt-4 pb-1">
-                  {group.label}
+                  {month.label}
                 </div>
-                {group.tasks.map((task) => (
+                {month.tasks.map((task) => (
                   <TaskItem
                     key={task.id}
                     task={task}
                     mode={mode}
+                    group={groups.find((g) => g.id === task.groupId)}
+                    isExiting={exitingIds.has(task.id)}
                     onStatusChange={handleStatusChange}
                     onDelete={handleDelete}
                     onUpdate={handleUpdate}
@@ -194,6 +219,8 @@ export default function TaskList({
                 key={task.id}
                 task={task}
                 mode={mode}
+                group={groups.find((g) => g.id === task.groupId)}
+                isExiting={exitingIds.has(task.id)}
                 onStatusChange={handleStatusChange}
                 onDelete={handleDelete}
                 onUpdate={handleUpdate}

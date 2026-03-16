@@ -62,13 +62,13 @@ export default function GroupPicker({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full transition-colors ${
+        className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full transition-colors duration-150 ${
           selectedGroup
-            ? "bg-lime-100 text-lime-700 font-medium"
+            ? "bg-amber-100 text-amber-700 font-medium"
             : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        <Tag className="w-3 h-3 shrink-0" />
+        <Tag className="w-3.5 h-3.5 flex-shrink-0" />
         <span>{selectedGroup ? selectedGroup.name : "Group"}</span>
       </button>
 
@@ -79,13 +79,13 @@ export default function GroupPicker({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 4 }}
             transition={springs.smooth}
-            className="absolute bottom-full left-0 mb-2 w-48 bg-white border border-neutral-200 rounded-xl shadow-lg z-50 overflow-hidden"
+            className="absolute bottom-full left-0 mb-2 w-52 bg-white border border-neutral-200 rounded-xl shadow-lg z-50 overflow-hidden"
           >
             {selectedGroup && (
               <button
                 type="button"
                 onClick={() => { onChange(null); setOpen(false); }}
-                className="w-full text-left text-xs px-3 py-2 hover:bg-neutral-50 text-muted-foreground"
+                className="w-full text-left text-xs px-3 py-2 hover:bg-neutral-50 text-muted-foreground transition-colors"
               >
                 No group
               </button>
@@ -96,11 +96,11 @@ export default function GroupPicker({
                 key={group.id}
                 type="button"
                 onClick={() => { onChange(group.id); setOpen(false); }}
-                className={`w-full text-left text-xs px-3 py-2 flex items-center gap-2 hover:bg-lime-50 transition-colors ${
-                  group.id === value ? "text-lime-700 font-medium" : "text-foreground"
+                className={`w-full text-left text-xs px-3 py-2 flex items-center gap-2 hover:bg-amber-50 transition-colors ${
+                  group.id === value ? "text-amber-700 font-medium" : "text-foreground"
                 }`}
               >
-                <span className="w-2 h-2 rounded-full bg-lime-400 shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
                 {group.name}
               </button>
             ))}
@@ -122,7 +122,7 @@ export default function GroupPicker({
                   type="button"
                   onClick={handleCreate}
                   disabled={creating}
-                  className="text-xs text-lime-600 font-medium disabled:opacity-50"
+                  className="text-xs text-amber-600 font-medium disabled:opacity-50"
                 >
                   Add
                 </button>

@@ -115,9 +115,10 @@ export default function TaskItem({
         <div className="flex-1 min-w-0">
           {/* Title row */}
           <div className="flex items-start gap-2">
-            <div className="relative flex-1 min-w-0">
+            <div className="flex-1 min-w-0">
+              {/* inline-block so the absolute line is scoped to the text width, not the full container */}
               <span
-                className={`text-sm leading-snug ${
+                className={`relative inline-block text-sm leading-snug ${
                   isCompleted
                     ? isExiting
                       ? "text-muted-foreground"
@@ -126,16 +127,15 @@ export default function TaskItem({
                 }`}
               >
                 {task.title}
+                {isExiting && (
+                  <motion.span
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
+                    className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-muted-foreground/60 origin-left pointer-events-none rounded-full"
+                  />
+                )}
               </span>
-              {/* Animated strikethrough — draws across text when task is being completed */}
-              {isCompleted && isExiting && (
-                <motion.span
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
-                  className="absolute left-0 right-0 top-[47%] h-px bg-muted-foreground/60 origin-left pointer-events-none rounded-full"
-                />
-              )}
             </div>
 
             {/* "..." menu — visible on hover/touch */}

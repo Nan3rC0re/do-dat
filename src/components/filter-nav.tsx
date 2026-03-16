@@ -6,7 +6,6 @@ import { motion } from "motion/react";
 import { springs } from "@/lib/motion";
 
 const filters = [
-  { label: "Inbox", href: "/" },
   { label: "Today", href: "/today" },
   { label: "Incoming", href: "/incoming" },
   { label: "Completed", href: "/completed" },

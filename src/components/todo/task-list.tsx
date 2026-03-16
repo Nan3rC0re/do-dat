@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useTransition, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { format } from "date-fns";
 import TaskItem from "./task-item";
@@ -9,7 +9,9 @@ import { createTask, updateTaskStatus, deleteTask } from "@/lib/actions/tasks";
 import { toast } from "sonner";
 import { playSound } from "@/lib/sound";
 import { springs } from "@/lib/motion";
-import type { Task, TaskStatus } from "@/lib/db/schema";
+import type { Task, TaskStatus, Group } from "@/lib/db/schema";
+
+const COMPLETE_EXIT_DELAY = 600; // ms — time for strikethrough animation before task exits
 
 type Action =
   | { type: "add"; task: Task }
@@ -30,12 +32,7 @@ function taskReducer(state: Task[], action: Action): Task[] {
     case "update_task":
       return state.map((t) =>
         t.id === action.taskId
-          ? {
-              ...t,
-              title: action.title,
-              dueDate: action.dueDate,
-              updatedAt: new Date(),
-            }
+          ? { ...t, title: action.title, dueDate: action.dueDate, updatedAt: new Date() }
           : t,
       );
     case "delete":
@@ -50,6 +47,7 @@ interface TaskListProps {
   mode: "inbox" | "today" | "incoming" | "completed";
   title: string;
   defaultDate?: Date | null;
+  initialGroups?: Group[];
 }
 
 export default function TaskList({
@@ -57,17 +55,22 @@ export default function TaskList({
   mode,
   title,
   defaultDate,
+  initialGroups = [],
 }: TaskListProps) {
   const [optimisticTasks, dispatch] = useOptimistic(initialTasks, taskReducer);
   const [, startTransition] = useTransition();
+  const [groups, setGroups] = useState<Group[]>(initialGroups);
+  // Tasks mid-completion animation — status NOT yet updated in optimistic state so sort is unaffected
+  const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
 
-  function handleAdd(title: string, dueDate: Date | null, id: string) {
+  function handleAdd(title: string, dueDate: Date | null, id: string, groupId: string | null) {
     const optimisticTask: Task = {
       id,
       userId: "",
       title,
       status: "not_started",
       dueDate,
+      groupId: groupId ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -75,7 +78,7 @@ export default function TaskList({
     startTransition(async () => {
       dispatch({ type: "add", task: optimisticTask });
       try {
-        await createTask({ title, dueDate: dueDate ?? undefined, id });
+        await createTask({ title, dueDate: dueDate ?? undefined, id, groupId: groupId ?? undefined });
       } catch {
         toast.error("Failed to add task");
       }
@@ -83,6 +86,28 @@ export default function TaskList({
   }
 
   function handleStatusChange(taskId: string, status: TaskStatus) {
+    // When completing in a non-completed view: animate strikethrough in-place first,
+    // then exit. We deliberately do NOT optimistic-dispatch yet so the task's status
+    // stays unchanged in state — preserving its current sort position.
+    if (status === "completed" && mode !== "completed") {
+      playSound("complete");
+      setCompletingIds((prev) => new Set([...prev, taskId]));
+
+      // Fire the server update in parallel (revalidation will sync after animation)
+      updateTaskStatus({ taskId, status }).catch(() => {
+        toast.error("Failed to update status");
+        setCompletingIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
+      });
+
+      // After animation, dispatch the optimistic removal so AnimatePresence exits it
+      setTimeout(() => {
+        startTransition(() => {
+          dispatch({ type: "update_status", taskId, status });
+        });
+        setCompletingIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
+      }, COMPLETE_EXIT_DELAY);
+      return;
+    }
     if (status === "completed") playSound("complete");
     startTransition(async () => {
       dispatch({ type: "update_status", taskId, status });
@@ -112,24 +137,49 @@ export default function TaskList({
   }
 
   const STATUS_ORDER: Record<string, number> = { in_progress: 0, not_started: 1 };
+
+  // completingIds tasks still have their original status in optimistic state (dispatch deferred),
+  // so they sort naturally at their original position — no special casing needed.
   const visibleTasks = mode === "completed"
     ? optimisticTasks
-    : optimisticTasks.filter((t) => t.status !== "completed");
+    : optimisticTasks.filter((t) => t.status !== "completed" || completingIds.has(t.id));
 
-  const sortedTasks = [...visibleTasks].sort((a, b) => {
-    const statusDiff = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
-    if (statusDiff !== 0) return statusDiff;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  const sortedTasks = mode === "completed"
+    // Completed view: most recently completed first
+    ? [...visibleTasks].sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      )
+    : [...visibleTasks].sort((a, b) => {
+        const statusDiff = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
+        if (statusDiff !== 0) return statusDiff;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
 
   const isEmpty = sortedTasks.length === 0;
+  const showAddForm = mode === "today" || mode === "incoming";
+
+  // Group completed tasks by month for the completed view
+  const completedMonths: { label: string; tasks: Task[] }[] = [];
+  if (mode === "completed") {
+    for (const task of sortedTasks) {
+      const label = format(new Date(task.updatedAt), "MMMM yyyy");
+      const last = completedMonths[completedMonths.length - 1];
+      if (last?.label === label) last.tasks.push(task);
+      else completedMonths.push({ label, tasks: [task] });
+    }
+  }
 
   return (
     <div className="space-y-4 pb-16">
       <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
 
-      {(mode === "inbox" || mode === "today") && (
-        <AddTaskForm onAdd={handleAdd} defaultDate={defaultDate} />
+      {showAddForm && (
+        <AddTaskForm
+          onAdd={handleAdd}
+          defaultDate={defaultDate}
+          groups={groups}
+          onGroupCreated={(g) => setGroups((prev) => [...prev, g])}
+        />
       )}
 
       <div className="mt-2">
@@ -143,47 +193,40 @@ export default function TaskList({
               transition={{ ...springs.gentle, delay: 0.1 }}
               className="text-center py-12 text-muted-foreground text-sm"
             >
-              {mode === "inbox"
-                ? "All clear. Add something to get started."
-                : mode === "today"
-                  ? "Nothing due today."
-                  : mode === "incoming"
-                    ? "No upcoming tasks."
-                    : "No completed tasks yet."}
+              {mode === "today"
+                ? "Nothing due today."
+                : mode === "incoming"
+                  ? "No upcoming tasks."
+                  : "No completed tasks yet."}
             </motion.div>
           ) : mode === "completed" ? (
-            (() => {
-              const groups: { label: string; tasks: Task[] }[] = [];
-              for (const task of sortedTasks) {
-                const label = format(new Date(task.updatedAt), "MMMM yyyy");
-                const last = groups[groups.length - 1];
-                if (last?.label === label) last.tasks.push(task);
-                else groups.push({ label, tasks: [task] });
-              }
-              return groups.map((group) => (
-                <div key={group.label}>
-                  <div className="text-base font-semibold text-foreground px-1 pt-4 pb-1">
-                    {group.label}
-                  </div>
-                  {group.tasks.map((task) => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                      mode={mode}
-                      onStatusChange={handleStatusChange}
-                      onDelete={handleDelete}
-                      onUpdate={handleUpdate}
-                    />
-                  ))}
+            completedMonths.map((month) => (
+              <div key={month.label}>
+                <div className="text-base font-semibold text-foreground px-1 pt-4 pb-1">
+                  {month.label}
                 </div>
-              ));
-            })()
+                {month.tasks.map((task) => (
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    mode={mode}
+                    group={groups.find((g) => g.id === task.groupId)}
+                    isExiting={completingIds.has(task.id)}
+                    onStatusChange={handleStatusChange}
+                    onDelete={handleDelete}
+                    onUpdate={handleUpdate}
+                  />
+                ))}
+              </div>
+            ))
           ) : (
             sortedTasks.map((task) => (
               <TaskItem
                 key={task.id}
                 task={task}
                 mode={mode}
+                group={groups.find((g) => g.id === task.groupId)}
+                isExiting={completingIds.has(task.id)}
                 onStatusChange={handleStatusChange}
                 onDelete={handleDelete}
                 onUpdate={handleUpdate}

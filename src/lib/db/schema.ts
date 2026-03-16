@@ -6,7 +6,14 @@ export const taskStatusEnum = pgEnum('task_status', [
   'completed',
 ])
 
+export const groups = pgTable('groups', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+})
 
+export type Group = typeof groups.$inferSelect
 
 export const tasks = pgTable('tasks', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -14,6 +21,7 @@ export const tasks = pgTable('tasks', {
   title: text('title').notNull(),
   status: taskStatusEnum('status').default('not_started').notNull(),
   dueDate: timestamp('due_date', { withTimezone: true }),
+  groupId: uuid('group_id').references(() => groups.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })

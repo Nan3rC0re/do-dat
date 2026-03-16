@@ -22,7 +22,7 @@ export async function getCompletedTasks(userId: string): Promise<Task[]> {
     .orderBy(desc(tasks.updatedAt))
 }
 
-export async function getTodayTasks(userId: string): Promise<Task[]> {
+export async function getTodayTasks(userId: string, start?: Date, end?: Date): Promise<Task[]> {
   const now = new Date()
   return db
     .select()
@@ -32,8 +32,8 @@ export async function getTodayTasks(userId: string): Promise<Task[]> {
         eq(tasks.userId, userId),
         ne(tasks.status, 'completed'),
         isNotNull(tasks.dueDate),
-        gte(tasks.dueDate, startOfDay(now)),
-        lte(tasks.dueDate, endOfDay(now)),
+        gte(tasks.dueDate, start ?? startOfDay(now)),
+        lte(tasks.dueDate, end ?? endOfDay(now)),
       ),
     )
     .orderBy(asc(tasks.dueDate))

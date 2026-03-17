@@ -10,15 +10,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import TaskDatePicker from "./task-date-picker";
+import GroupPicker from "./group-picker";
 import { updateTask } from "@/lib/actions/tasks";
 import { toast } from "sonner";
-import type { Task } from "@/lib/db/schema";
+import type { Task, Group } from "@/lib/db/schema";
 
 interface EditTaskSheetProps {
   task: Task;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onOptimisticUpdate: (title: string, dueDate: Date | null) => void;
+  onOptimisticUpdate: (title: string, dueDate: Date | null, groupId: string | null) => void;
+  groups?: Group[];
+  onGroupCreated?: (group: Group) => void;
 }
 
 export default function EditTaskSheet({
@@ -26,21 +29,24 @@ export default function EditTaskSheet({
   open,
   onOpenChange,
   onOptimisticUpdate,
+  groups = [],
+  onGroupCreated,
 }: EditTaskSheetProps) {
   const [title, setTitle] = useState(task.title);
   const [dueDate, setDueDate] = useState<Date | null>(task.dueDate ?? null);
+  const [groupId, setGroupId] = useState<string | null>(task.groupId ?? null);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
 
-    onOptimisticUpdate(title.trim(), dueDate);
+    onOptimisticUpdate(title.trim(), dueDate, groupId);
     onOpenChange(false);
 
     startTransition(async () => {
       try {
-        await updateTask({ taskId: task.id, title: title.trim(), dueDate });
+        await updateTask({ taskId: task.id, title: title.trim(), dueDate, groupId });
       } catch {
         toast.error("Failed to update task");
       }
@@ -66,6 +72,15 @@ export default function EditTaskSheet({
           />
           <div className="flex items-center gap-2">
             <TaskDatePicker value={dueDate} onChange={setDueDate} />
+            <GroupPicker
+              groups={groups}
+              value={groupId}
+              onChange={setGroupId}
+              onGroupCreated={(g) => {
+                onGroupCreated?.(g);
+                setGroupId(g.id);
+              }}
+            />
           </div>
           <Button
             type="submit"

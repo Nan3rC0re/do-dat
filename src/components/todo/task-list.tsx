@@ -16,7 +16,7 @@ const COMPLETE_EXIT_DELAY = 600; // ms — time for strikethrough animation befo
 type Action =
   | { type: "add"; task: Task }
   | { type: "update_status"; taskId: string; status: TaskStatus }
-  | { type: "update_task"; taskId: string; title: string; dueDate: Date | null }
+  | { type: "update_task"; taskId: string; title: string; dueDate: Date | null; groupId: string | null }
   | { type: "delete"; taskId: string };
 
 function taskReducer(state: Task[], action: Action): Task[] {
@@ -32,7 +32,7 @@ function taskReducer(state: Task[], action: Action): Task[] {
     case "update_task":
       return state.map((t) =>
         t.id === action.taskId
-          ? { ...t, title: action.title, dueDate: action.dueDate, updatedAt: new Date() }
+          ? { ...t, title: action.title, dueDate: action.dueDate, groupId: action.groupId, updatedAt: new Date() }
           : t,
       );
     case "delete":
@@ -130,9 +130,9 @@ export default function TaskList({
     });
   }
 
-  function handleUpdate(taskId: string, title: string, dueDate: Date | null) {
+  function handleUpdate(taskId: string, title: string, dueDate: Date | null, groupId: string | null) {
     startTransition(() => {
-      dispatch({ type: "update_task", taskId, title, dueDate });
+      dispatch({ type: "update_task", taskId, title, dueDate, groupId });
     });
   }
 
@@ -211,10 +211,12 @@ export default function TaskList({
                     task={task}
                     mode={mode}
                     group={groups.find((g) => g.id === task.groupId)}
+                    groups={groups}
                     isExiting={completingIds.has(task.id)}
                     onStatusChange={handleStatusChange}
                     onDelete={handleDelete}
                     onUpdate={handleUpdate}
+                    onGroupCreated={(g) => setGroups((prev) => [...prev, g])}
                   />
                 ))}
               </div>
@@ -226,10 +228,12 @@ export default function TaskList({
                 task={task}
                 mode={mode}
                 group={groups.find((g) => g.id === task.groupId)}
+                groups={groups}
                 isExiting={completingIds.has(task.id)}
                 onStatusChange={handleStatusChange}
                 onDelete={handleDelete}
                 onUpdate={handleUpdate}
+                onGroupCreated={(g) => setGroups((prev) => [...prev, g])}
               />
             ))
           )}

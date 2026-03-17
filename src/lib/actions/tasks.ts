@@ -77,12 +77,14 @@ const updateTaskSchema = z.object({
   taskId: z.string().uuid(),
   title: z.string().min(1).max(500),
   dueDate: z.date().nullable().optional(),
+  groupId: z.string().uuid().nullable().optional(),
 })
 
 export async function updateTask(input: {
   taskId: string
   title: string
   dueDate?: Date | null
+  groupId?: string | null
 }) {
   const userId = await getAuthUserId()
   const parsed = updateTaskSchema.parse(input)
@@ -90,6 +92,7 @@ export async function updateTask(input: {
   const setValues: Partial<typeof tasks.$inferInsert> = {
     title: parsed.title,
     dueDate: parsed.dueDate ?? null,
+    groupId: parsed.groupId ?? null,
     updatedAt: new Date(),
   }
 

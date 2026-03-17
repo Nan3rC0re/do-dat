@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "motion/react";
 import { MoreHorizontal } from "lucide-react";
-import { format, isToday } from "date-fns";
+import { format, isToday, isBefore, startOfDay } from "date-fns";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,10 +19,12 @@ interface TaskItemProps {
   task: Task;
   mode: "inbox" | "today" | "incoming" | "completed";
   group?: Group;
+  groups?: Group[];
   isExiting?: boolean;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onDelete: (taskId: string) => void;
-  onUpdate: (taskId: string, title: string, dueDate: Date | null) => void;
+  onUpdate: (taskId: string, title: string, dueDate: Date | null, groupId: string | null) => void;
+  onGroupCreated?: (group: Group) => void;
 }
 
 function formatTaskDate(
@@ -39,10 +41,12 @@ export default function TaskItem({
   task,
   mode,
   group,
+  groups = [],
   isExiting = false,
   onStatusChange,
   onDelete,
   onUpdate,
+  onGroupCreated,
 }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -64,15 +68,24 @@ export default function TaskItem({
 
   // isExiting means the task is mid-completion animation (status not yet updated in optimistic state)
   const isCompleted = task.status === "completed" || isExiting;
+
+  const taskDueDate = task.dueDate
+    ? typeof task.dueDate === "string" ? new Date(task.dueDate) : task.dueDate
+    : null;
+  const isOverdue = mode === "today" && taskDueDate !== null && isBefore(taskDueDate, startOfDay(new Date()));
+
   const dateLabel =
     mode === "completed"
-      ? formatTaskDate(task.updatedAt, true)  // show "Today" for tasks completed today
-      : formatTaskDate(task.dueDate);          // hide "Today" — user already knows today's date
+      ? formatTaskDate(task.updatedAt, true)       // show "Today" for tasks completed today
+      : isOverdue
+        ? format(taskDueDate!, "MMM d")            // always show overdue date in today view
+        : formatTaskDate(task.dueDate);             // hide "Today" — user already knows today's date
+
   const showActions = isHovered || menuOpen || isTouchSelected;
   const showMeta = !!(dateLabel || group);
 
-  function handleOptimisticUpdate(title: string, dueDate: Date | null) {
-    onUpdate(task.id, title, dueDate);
+  function handleOptimisticUpdate(title: string, dueDate: Date | null, groupId: string | null) {
+    onUpdate(task.id, title, dueDate, groupId);
   }
 
   return (
@@ -184,7 +197,9 @@ export default function TaskItem({
           {showMeta && (
             <div className="flex items-center gap-1.5 mt-0.5">
               {dateLabel && (
-                <span className="text-xs text-muted-foreground">{dateLabel}</span>
+                <span className={`text-xs ${isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
+                  {dateLabel}
+                </span>
               )}
               {group && (
                 <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
@@ -201,6 +216,8 @@ export default function TaskItem({
         open={editOpen}
         onOpenChange={setEditOpen}
         onOptimisticUpdate={handleOptimisticUpdate}
+        groups={groups}
+        onGroupCreated={onGroupCreated}
       />
     </>
   );

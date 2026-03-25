@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import TaskDatePicker from "./task-date-picker";
-import GroupPicker from "./group-picker";
+// import GroupPicker from "./group-picker"; // GROUPS — hidden until feature is re-enabled
 import { updateTask } from "@/lib/actions/tasks";
 import { toast } from "sonner";
 import type { Task, Group } from "@/lib/db/schema";
@@ -29,8 +29,8 @@ export default function EditTaskSheet({
   open,
   onOpenChange,
   onOptimisticUpdate,
-  groups = [],
-  onGroupCreated,
+  groups: _groups = [],           // GROUPS — unused while feature is hidden
+  onGroupCreated: _onGroupCreated, // GROUPS — unused while feature is hidden
 }: EditTaskSheetProps) {
   const [title, setTitle] = useState(task.title);
   const [dueDate, setDueDate] = useState<Date | null>(task.dueDate ?? null);
@@ -72,15 +72,17 @@ export default function EditTaskSheet({
           />
           <div className="flex items-center gap-2">
             <TaskDatePicker value={dueDate} onChange={setDueDate} />
+            {/* GROUP PICKER — hidden until groups feature is re-enabled
             <GroupPicker
-              groups={groups}
+              groups={_groups}
               value={groupId}
               onChange={setGroupId}
               onGroupCreated={(g) => {
-                onGroupCreated?.(g);
+                _onGroupCreated?.(g);
                 setGroupId(g.id);
               }}
             />
+            */}
           </div>
           <Button
             type="submit"

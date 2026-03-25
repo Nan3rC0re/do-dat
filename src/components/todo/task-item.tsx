@@ -201,11 +201,13 @@ export default function TaskItem({
                   {dateLabel}
                 </span>
               )}
+              {/* GROUP BADGE — hidden until groups feature is re-enabled
               {group && (
                 <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
                   {group.name}
                 </span>
               )}
+              */}
             </div>
           )}
         </div>

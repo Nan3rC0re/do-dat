@@ -5,7 +5,7 @@ import { ArrowUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { springs } from "@/lib/motion";
 import TaskDatePicker from "./task-date-picker";
-import GroupPicker from "./group-picker";
+// import GroupPicker from "./group-picker"; // GROUPS — hidden until feature is re-enabled
 import type { Group } from "@/lib/db/schema";
 
 interface AddTaskFormProps {
@@ -18,8 +18,8 @@ interface AddTaskFormProps {
 export default function AddTaskForm({
   onAdd,
   defaultDate,
-  groups,
-  onGroupCreated,
+  groups: _groups,           // GROUPS — unused while feature is hidden
+  onGroupCreated: _onGroupCreated, // GROUPS — unused while feature is hidden
 }: AddTaskFormProps) {
   const [value, setValue] = useState("");
   const [dueDate, setDueDate] = useState<Date | null>(defaultDate ?? null);
@@ -68,14 +68,16 @@ export default function AddTaskForm({
         <div className="flex items-center justify-between px-3 pb-2">
           <div className="flex items-center gap-1">
             <TaskDatePicker value={dueDate} onChange={setDueDate} />
-            {groups !== undefined && (
+            {/* GROUP PICKER — hidden until groups feature is re-enabled
+            {_groups !== undefined && (
               <GroupPicker
-                groups={groups}
+                groups={_groups}
                 value={groupId}
                 onChange={setGroupId}
-                onGroupCreated={(group) => onGroupCreated?.(group)}
+                onGroupCreated={(group) => _onGroupCreated?.(group)}
               />
             )}
+            */}
           </div>
 
           <AnimatePresence>

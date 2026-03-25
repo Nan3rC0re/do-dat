@@ -11,6 +11,9 @@ const geist = Geist({
 export const metadata: Metadata = {
   title: "do-dat",
   description: "A premium task manager",
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

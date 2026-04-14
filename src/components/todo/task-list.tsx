@@ -3,6 +3,7 @@
 import { useOptimistic, useTransition, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { format } from "date-fns";
+import { ChevronDown } from "lucide-react";
 import TaskItem from "./task-item";
 import AddTaskForm from "./add-task-form";
 import { createTask, updateTaskStatus, deleteTask } from "@/lib/actions/tasks";
@@ -62,6 +63,16 @@ export default function TaskList({
   const [groups, setGroups] = useState<Group[]>(initialGroups);
   // Tasks mid-completion animation — status NOT yet updated in optimistic state so sort is unaffected
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
+  const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
+
+  function toggleMonth(label: string) {
+    setCollapsedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }
 
   function handleAdd(title: string, dueDate: Date | null, id: string, groupId: string | null) {
     const optimisticTask: Task = {
@@ -200,27 +211,62 @@ export default function TaskList({
                   : "No completed tasks yet."}
             </motion.div>
           ) : mode === "completed" ? (
-            completedMonths.map((month) => (
-              <div key={month.label}>
-                <div className="text-base font-semibold text-foreground px-1 pt-4 pb-1">
-                  {month.label}
+            completedMonths.map((month) => {
+              const isCollapsed = collapsedMonths.has(month.label);
+              return (
+                <div key={month.label}>
+                  <button
+                    onClick={() => toggleMonth(month.label)}
+                    className="flex items-center gap-2 w-full text-left px-1 py-4 group hover:bg-neutral-100 rounded-md"
+                  >
+                    <motion.div
+                      animate={{ rotate: isCollapsed ? -90 : 0 }}
+                      transition={{ ease: "easeOut", duration: 0.2 }}
+                    >
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    </motion.div>
+                    <span className="text-base font-semibold text-foreground">
+                      {month.label}
+                    </span>
+                    <AnimatePresence>
+                      {isCollapsed && (
+                        <motion.span
+                          key="count"
+                          initial={{ opacity: 0, x: -4 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -4 }}
+                          transition={{ ease: "easeOut", duration: 0.15 }}
+                          className="text-xs text-muted-foreground font-normal"
+                        >
+                          {month.tasks.length} {month.tasks.length === 1 ? "task" : "tasks"}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                  <motion.div
+                    initial={false}
+                    animate={isCollapsed ? { height: 0, opacity: 0 } : { height: "auto", opacity: 1 }}
+                    transition={{ ease: "easeOut", duration: 0.25 }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    {month.tasks.map((task) => (
+                      <TaskItem
+                        key={task.id}
+                        task={task}
+                        mode={mode}
+                        group={groups.find((g) => g.id === task.groupId)}
+                        groups={groups}
+                        isExiting={completingIds.has(task.id)}
+                        onStatusChange={handleStatusChange}
+                        onDelete={handleDelete}
+                        onUpdate={handleUpdate}
+                        onGroupCreated={(g) => setGroups((prev) => [...prev, g])}
+                      />
+                    ))}
+                  </motion.div>
                 </div>
-                {month.tasks.map((task) => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    mode={mode}
-                    group={groups.find((g) => g.id === task.groupId)}
-                    groups={groups}
-                    isExiting={completingIds.has(task.id)}
-                    onStatusChange={handleStatusChange}
-                    onDelete={handleDelete}
-                    onUpdate={handleUpdate}
-                    onGroupCreated={(g) => setGroups((prev) => [...prev, g])}
-                  />
-                ))}
-              </div>
-            ))
+              );
+            })
           ) : (
             sortedTasks.map((task) => (
               <TaskItem

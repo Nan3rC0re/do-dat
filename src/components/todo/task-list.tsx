@@ -2,25 +2,28 @@
 
 import { useOptimistic, useTransition, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { format } from "date-fns";
+import { format, isBefore, startOfDay } from "date-fns";
 import { ChevronDown } from "lucide-react";
 import TaskItem from "./task-item";
 import AddTaskForm from "./add-task-form";
-import { createTask, updateTaskStatus, deleteTask } from "@/lib/actions/tasks";
+import FilterButton, { DEFAULT_FILTERS, type FilterState } from "./filter-button";
+import { createTask, updateTaskStatus, deleteTask, updateTask } from "@/lib/actions/tasks";
+import { setTaskTags } from "@/lib/actions/tags";
 import { toast } from "sonner";
 import { playSound } from "@/lib/sound";
 import { springs } from "@/lib/motion";
-import type { Task, TaskStatus, Group } from "@/lib/db/schema";
+import type { TaskWithTags, TaskStatus, TaskPriority, Group, Tag } from "@/lib/db/schema";
 
 const COMPLETE_EXIT_DELAY = 600; // ms — time for strikethrough animation before task exits
 
 type Action =
-  | { type: "add"; task: Task }
+  | { type: "add"; task: TaskWithTags }
   | { type: "update_status"; taskId: string; status: TaskStatus }
-  | { type: "update_task"; taskId: string; title: string; dueDate: Date | null; groupId: string | null }
+  | { type: "update_task"; taskId: string; title: string; dueDate: Date | null; groupId: string | null; priority: TaskPriority }
+  | { type: "update_tags"; taskId: string; tags: Tag[] }
   | { type: "delete"; taskId: string };
 
-function taskReducer(state: Task[], action: Action): Task[] {
+function taskReducer(state: TaskWithTags[], action: Action): TaskWithTags[] {
   switch (action.type) {
     case "add":
       return [action.task, ...state];
@@ -33,8 +36,12 @@ function taskReducer(state: Task[], action: Action): Task[] {
     case "update_task":
       return state.map((t) =>
         t.id === action.taskId
-          ? { ...t, title: action.title, dueDate: action.dueDate, groupId: action.groupId, updatedAt: new Date() }
+          ? { ...t, title: action.title, dueDate: action.dueDate, groupId: action.groupId, priority: action.priority, updatedAt: new Date() }
           : t,
+      );
+    case "update_tags":
+      return state.map((t) =>
+        t.id === action.taskId ? { ...t, tags: action.tags } : t,
       );
     case "delete":
       return state.filter((t) => t.id !== action.taskId);
@@ -43,12 +50,33 @@ function taskReducer(state: Task[], action: Action): Task[] {
   }
 }
 
+const PRIORITY_RANK: Record<TaskPriority, number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+  no_priority: 3,
+}
+
+function taskTier(task: TaskWithTags): number {
+  const overdue =
+    task.dueDate !== null &&
+    task.dueDate !== undefined &&
+    isBefore(new Date(task.dueDate), startOfDay(new Date()))
+
+  if (task.status === "in_progress" && task.priority !== "no_priority") return 0
+  if (task.status === "not_started" && task.priority !== "no_priority") return 1
+  if (task.status === "in_progress") return 2
+  if (task.status === "not_started" && overdue) return 3
+  return 4
+}
+
 interface TaskListProps {
-  initialTasks: Task[];
+  initialTasks: TaskWithTags[];
   mode: "inbox" | "today" | "incoming" | "completed";
   title: string;
   defaultDate?: Date | null;
   initialGroups?: Group[];
+  initialTags?: Tag[];
 }
 
 export default function TaskList({
@@ -57,10 +85,13 @@ export default function TaskList({
   title,
   defaultDate,
   initialGroups = [],
+  initialTags = [],
 }: TaskListProps) {
   const [optimisticTasks, dispatch] = useOptimistic(initialTasks, taskReducer);
   const [, startTransition] = useTransition();
   const [groups, setGroups] = useState<Group[]>(initialGroups);
+  const [allTags, setAllTags] = useState<Tag[]>(initialTags);
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   // Tasks mid-completion animation — status NOT yet updated in optimistic state so sort is unaffected
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
@@ -74,14 +105,16 @@ export default function TaskList({
     });
   }
 
-  function handleAdd(title: string, dueDate: Date | null, id: string, groupId: string | null) {
-    const optimisticTask: Task = {
+  function handleAdd(title: string, dueDate: Date | null, id: string, groupId: string | null, priority: TaskPriority, tagIds: string[]) {
+    const optimisticTask: TaskWithTags = {
       id,
       userId: "",
       title,
       status: "not_started",
+      priority: priority ?? "no_priority",
       dueDate,
       groupId: groupId ?? null,
+      tags: allTags.filter((t) => tagIds.includes(t.id)),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -89,7 +122,7 @@ export default function TaskList({
     startTransition(async () => {
       dispatch({ type: "add", task: optimisticTask });
       try {
-        await createTask({ title, dueDate: dueDate ?? undefined, id, groupId: groupId ?? undefined });
+        await createTask({ title, dueDate: dueDate ?? undefined, id, groupId: groupId ?? undefined, priority, tagIds });
       } catch {
         toast.error("Failed to add task");
       }
@@ -141,36 +174,67 @@ export default function TaskList({
     });
   }
 
-  function handleUpdate(taskId: string, title: string, dueDate: Date | null, groupId: string | null) {
+  function handleUpdate(taskId: string, title: string, dueDate: Date | null, groupId: string | null, priority: TaskPriority) {
     startTransition(() => {
-      dispatch({ type: "update_task", taskId, title, dueDate, groupId });
+      dispatch({ type: "update_task", taskId, title, dueDate, groupId, priority });
+    });
+    // Fire server action (fire-and-forget in transition, errors toasted in edit sheet)
+    updateTask({ taskId, title, dueDate, groupId, priority }).catch(() => {
+      toast.error("Failed to update task");
     });
   }
 
-  const STATUS_ORDER: Record<string, number> = { in_progress: 0, not_started: 1 };
+  function handleTagsChange(taskId: string, tagIds: string[]) {
+    const updatedTags = allTags.filter((t) => tagIds.includes(t.id));
+    startTransition(() => {
+      dispatch({ type: "update_tags", taskId, tags: updatedTags });
+    });
+    setTaskTags({ taskId, tagIds }).catch(() => {
+      toast.error("Failed to update tags");
+    });
+  }
 
-  // completingIds tasks still have their original status in optimistic state (dispatch deferred),
-  // so they sort naturally at their original position — no special casing needed.
+  function handleTagCreated(tag: Tag) {
+    setAllTags((prev) => [...prev, tag]);
+  }
+
   const visibleTasks = mode === "completed"
     ? optimisticTasks
     : optimisticTasks.filter((t) => t.status !== "completed" || completingIds.has(t.id));
 
+  // Apply filters — completingIds tasks always bypass filter to avoid interrupting exit animation
+  const filteredTasks = mode === "completed"
+    ? visibleTasks
+    : visibleTasks.filter((task) => {
+        if (completingIds.has(task.id)) return true
+        if (filters.status !== "all" && task.status !== filters.status) return false
+        if (filters.priority !== "all" && task.priority !== filters.priority) return false
+        if (filters.tagIds.length > 0 && !filters.tagIds.some((id) => task.tags.some((t) => t.id === id))) return false
+        return true
+      });
+
   const sortedTasks = mode === "completed"
     // Completed view: most recently completed first
-    ? [...visibleTasks].sort(
+    ? [...filteredTasks].sort(
         (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       )
-    : [...visibleTasks].sort((a, b) => {
-        const statusDiff = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
-        if (statusDiff !== 0) return statusDiff;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    : [...filteredTasks].sort((a, b) => {
+        const tierDiff = taskTier(a) - taskTier(b)
+        if (tierDiff !== 0) return tierDiff
+        // Within tiers 0 and 1 (has priority), sort by priority level
+        const aTier = taskTier(a)
+        if (aTier <= 1) {
+          const pd = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]
+          if (pd !== 0) return pd
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       });
 
   const isEmpty = sortedTasks.length === 0;
   const showAddForm = mode === "today" || mode === "incoming";
 
   // Group completed tasks by month for the completed view
-  const completedMonths: { label: string; tasks: Task[] }[] = [];
+  const completedMonths: { label: string; tasks: TaskWithTags[] }[] = [];
   if (mode === "completed") {
     for (const task of sortedTasks) {
       const label = format(new Date(task.updatedAt), "MMMM yyyy");
@@ -182,13 +246,20 @@ export default function TaskList({
 
   return (
     <div className="space-y-4 pb-16">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        {showAddForm && (
+          <FilterButton filters={filters} onChange={setFilters} allTags={allTags} />
+        )}
+      </div>
 
       {showAddForm && (
         <AddTaskForm
           onAdd={handleAdd}
           defaultDate={defaultDate}
           groups={groups}
+          allTags={allTags}
+          onTagCreated={handleTagCreated}
           onGroupCreated={(g) => setGroups((prev) => [...prev, g])}
         />
       )}
@@ -256,10 +327,13 @@ export default function TaskList({
                         mode={mode}
                         group={groups.find((g) => g.id === task.groupId)}
                         groups={groups}
+                        allTags={allTags}
                         isExiting={completingIds.has(task.id)}
                         onStatusChange={handleStatusChange}
                         onDelete={handleDelete}
                         onUpdate={handleUpdate}
+                        onTagsChange={handleTagsChange}
+                        onTagCreated={handleTagCreated}
                         onGroupCreated={(g) => setGroups((prev) => [...prev, g])}
                       />
                     ))}
@@ -275,10 +349,13 @@ export default function TaskList({
                 mode={mode}
                 group={groups.find((g) => g.id === task.groupId)}
                 groups={groups}
+                allTags={allTags}
                 isExiting={completingIds.has(task.id)}
                 onStatusChange={handleStatusChange}
                 onDelete={handleDelete}
                 onUpdate={handleUpdate}
+                onTagsChange={handleTagsChange}
+                onTagCreated={handleTagCreated}
                 onGroupCreated={(g) => setGroups((prev) => [...prev, g])}
               />
             ))

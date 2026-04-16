@@ -107,3 +107,41 @@ create index if not exists tasks_group_id_idx on tasks(group_id);
 -- create policy "Server role full access for your_table" on your_table for all
 --   using (current_user = 'postgres') with check (current_user = 'postgres');
 -- ------------------------------------------------------------
+
+-- =============================================================================
+-- BLOCK D: priority column on tasks
+-- =============================================================================
+create type task_priority as enum ('no_priority', 'low', 'medium', 'high');
+alter table tasks add column if not exists priority task_priority not null default 'no_priority';
+
+-- =============================================================================
+-- BLOCK E: tags + task_tags tables
+-- =============================================================================
+create table if not exists tags (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  color text not null default 'slate',
+  created_at timestamptz not null default now()
+);
+alter table tags enable row level security;
+create policy "Users can view own tags" on tags for select using (auth.uid() = user_id);
+create policy "Users can insert own tags" on tags for insert with check (auth.uid() = user_id);
+create policy "Users can update own tags" on tags for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users can delete own tags" on tags for delete using (auth.uid() = user_id);
+-- CRITICAL: server bypass (auth.uid() is NULL on direct Postgres connections via DATABASE_URL)
+create policy "Server role full access for tags" on tags for all
+  using (current_user = 'postgres') with check (current_user = 'postgres');
+create index if not exists tags_user_id_idx on tags(user_id);
+
+create table if not exists task_tags (
+  task_id uuid not null references tasks(id) on delete cascade,
+  tag_id uuid not null references tags(id) on delete cascade,
+  primary key (task_id, tag_id)
+);
+alter table task_tags enable row level security;
+create policy "task_tags owner access" on task_tags for all
+  using (exists (select 1 from tasks where tasks.id = task_tags.task_id and tasks.user_id = auth.uid()));
+-- CRITICAL: server bypass
+create policy "Server role full access for task_tags" on task_tags for all
+  using (current_user = 'postgres') with check (current_user = 'postgres');

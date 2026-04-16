@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { getTodayTasks } from '@/lib/queries/tasks'
 import { getOrSeedGroups } from '@/lib/queries/groups'
+import { getUserTags } from '@/lib/queries/tags'
 import TaskList from '@/components/todo/task-list'
 import TodayDateSync from '@/components/todo/today-date-sync'
 import { getUser } from '@/lib/supabase/get-user'
@@ -22,9 +23,10 @@ export default async function TodayPage() {
   const startDate = startStr ? new Date(decodeURIComponent(startStr)) : undefined
   const endDate = endStr ? new Date(decodeURIComponent(endStr)) : undefined
 
-  const [tasks, groups] = await Promise.all([
+  const [tasks, groups, userTags] = await Promise.all([
     getTodayTasks(user.id, startDate, endDate),
     getOrSeedGroups(user.id),
+    getUserTags(user.id),
   ])
 
   // Use client-provided date string for the label — avoids server UTC mismatch
@@ -41,6 +43,7 @@ export default async function TodayPage() {
         title={todayLabel}
         defaultDate={startDate ?? new Date()}
         initialGroups={groups}
+        initialTags={userTags}
       />
     </>
   )

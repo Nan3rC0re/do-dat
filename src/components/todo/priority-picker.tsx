@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Minus, SignalLow, SignalMedium, SignalHigh, Check } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { TaskPriority } from '@/lib/db/schema'
 
 interface PriorityOption {
@@ -66,19 +67,24 @@ export default function PriorityPicker({ value, onChange }: PriorityPickerProps)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
-            value !== 'no_priority'
-              ? `bg-neutral-100 ${current.activeClass} font-medium`
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <current.Icon className="w-3.5 h-3.5 shrink-0" />
-          {value !== 'no_priority' && <span>{current.label}</span>}
-        </button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
+                value !== 'no_priority'
+                  ? `bg-neutral-100 ${current.activeClass} font-medium`
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <current.Icon className="w-3.5 h-3.5 shrink-0" />
+              <span>{value !== 'no_priority' ? current.label : 'Priority'}</span>
+            </button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent className="text-[10px] px-2 py-1">Priority</TooltipContent>
+      </Tooltip>
       <PopoverContent
         className="w-44 p-1"
         align="start"

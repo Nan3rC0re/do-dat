@@ -137,12 +137,10 @@ export default function TaskItem({
         <div className="flex-1 min-w-0">
           {/* Title row */}
           <div className="flex items-start gap-2">
-            <div className="flex-1 min-w-0 flex items-start gap-1.5">
+            <div className="flex-1 min-w-0 flex items-center gap-1.5">
               {/* Priority icon — inline before title */}
               {showPriorityIcon && (
-                <div className="pt-0.5 shrink-0">
-                  <PriorityIcon priority={task.priority} className="w-3.5 h-3.5" />
-                </div>
+                <PriorityIcon priority={task.priority} className="w-3.5 h-3.5 shrink-0" />
               )}
 
               {/* inline-block so the absolute line is scoped to the text width, not the full container */}

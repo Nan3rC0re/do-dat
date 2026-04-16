@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { SlidersHorizontal, X } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PriorityIcon, PRIORITY_OPTIONS } from './priority-picker'
 import { ColorDot } from './tag-picker'
 import type { Tag, TaskPriority, TaskStatus } from '@/lib/db/schema'
@@ -60,25 +61,30 @@ export default function FilterButton({ filters, onChange, allTags }: FilterButto
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={`relative flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
-            activeCount > 0
-              ? 'bg-violet-100 text-violet-700 font-medium'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-          aria-label="Filter tasks"
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-          <span>Filter</span>
-          {activeCount > 0 && (
-            <span className="w-4 h-4 rounded-full bg-violet-600 text-white text-[10px] font-bold flex items-center justify-center leading-none shrink-0">
-              {activeCount}
-            </span>
-          )}
-        </button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={`relative flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
+                activeCount > 0
+                  ? 'bg-violet-100 text-violet-700 font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+              aria-label="Filter tasks"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+              <span>Filter</span>
+              {activeCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-violet-600 text-white text-[10px] font-bold flex items-center justify-center leading-none shrink-0">
+                  {activeCount}
+                </span>
+              )}
+            </button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent className="text-[10px] px-2 py-1">Filter tasks</TooltipContent>
+      </Tooltip>
 
       <PopoverContent
         className="w-64 p-3 space-y-4"

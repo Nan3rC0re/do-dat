@@ -66,17 +66,16 @@ export default function FilterButton({ filters, onChange, allTags }: FilterButto
           <PopoverTrigger asChild>
             <button
               type="button"
-              className={`relative flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
+              className={`cursor-pointer relative flex items-center justify-center w-7 h-7 rounded-full transition-colors duration-150 ${
                 activeCount > 0
-                  ? 'bg-violet-100 text-violet-700 font-medium'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-violet-100 text-violet-700'
+                  : 'text-foreground hover:bg-neutral-200'
               }`}
               aria-label="Filter tasks"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-              <span>Filter</span>
               {activeCount > 0 && (
-                <span className="w-4 h-4 rounded-full bg-violet-600 text-white text-[10px] font-bold flex items-center justify-center leading-none shrink-0">
+                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-violet-600 text-white text-[9px] font-bold flex items-center justify-center leading-none">
                   {activeCount}
                 </span>
               )}
@@ -101,7 +100,7 @@ export default function FilterButton({ filters, onChange, allTags }: FilterButto
             <button
               type="button"
               onClick={clearAll}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="cursor-pointer flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="w-3 h-3" />
               Clear all
@@ -118,7 +117,7 @@ export default function FilterButton({ filters, onChange, allTags }: FilterButto
                 key={opt.value}
                 type="button"
                 onClick={() => setStatus(opt.value)}
-                className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                className={`cursor-pointer text-xs px-2.5 py-1 rounded-full transition-colors ${
                   filters.status === opt.value
                     ? 'bg-neutral-900 text-white font-medium'
                     : 'bg-neutral-100 text-foreground hover:bg-neutral-200'
@@ -150,7 +149,7 @@ export default function FilterButton({ filters, onChange, allTags }: FilterButto
                 key={opt.value}
                 type="button"
                 onClick={() => setPriority(opt.value)}
-                className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors ${
+                className={`cursor-pointer flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors ${
                   filters.priority === opt.value
                     ? 'bg-neutral-900 text-white font-medium'
                     : 'bg-neutral-100 text-foreground hover:bg-neutral-200'
@@ -178,7 +177,7 @@ export default function FilterButton({ filters, onChange, allTags }: FilterButto
                     key={tag.id}
                     type="button"
                     onClick={() => toggleTag(tag.id)}
-                    className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors ${
+                    className={`cursor-pointer flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors ${
                       isActive
                         ? 'bg-neutral-900 text-white font-medium'
                         : 'bg-neutral-100 text-foreground hover:bg-neutral-200'

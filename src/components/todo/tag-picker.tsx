@@ -108,7 +108,7 @@ export default function TagPicker({
           <PopoverTrigger asChild>
             <button
               type="button"
-              className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
+              className={`cursor-pointer flex items-center justify-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
                 hasSelected
                   ? 'bg-neutral-100 text-foreground font-medium'
                   : 'text-muted-foreground hover:text-foreground'
@@ -136,7 +136,7 @@ export default function TagPicker({
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent className="text-[10px] px-2 py-1">Tags</TooltipContent>
+        <TooltipContent side="bottom" className="text-[10px] px-2 py-1">Tags</TooltipContent>
       </Tooltip>
       <PopoverContent
         className="w-44 p-1"
@@ -170,7 +170,7 @@ export default function TagPicker({
               type="button"
               onClick={handleCreate}
               disabled={creating}
-              className="w-full flex items-center gap-2.5 px-2 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors disabled:opacity-50"
+              className="cursor-pointer w-full flex items-center gap-2.5 px-2 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors disabled:opacity-50"
             >
               <Plus className="w-4 h-4 shrink-0 text-muted-foreground" />
               <span>Create &ldquo;{search.trim()}&rdquo;</span>
@@ -188,7 +188,7 @@ export default function TagPicker({
                 key={tag.id}
                 type="button"
                 onClick={() => toggle(tag.id)}
-                className={`w-full flex items-center gap-2.5 px-2 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${
+                className={`cursor-pointer w-full flex items-center gap-2.5 px-2 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${
                   isSelected ? 'font-medium' : ''
                 }`}
               >

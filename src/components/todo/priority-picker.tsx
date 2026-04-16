@@ -72,7 +72,7 @@ export default function PriorityPicker({ value, onChange }: PriorityPickerProps)
           <PopoverTrigger asChild>
             <button
               type="button"
-              className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
+              className={`cursor-pointer flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
                 value !== 'no_priority'
                   ? `bg-neutral-100 ${current.activeClass} font-medium`
                   : 'text-muted-foreground hover:text-foreground'
@@ -83,7 +83,7 @@ export default function PriorityPicker({ value, onChange }: PriorityPickerProps)
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent className="text-[10px] px-2 py-1">Priority</TooltipContent>
+        <TooltipContent side="bottom" className="text-[10px] px-2 py-1">Priority</TooltipContent>
       </Tooltip>
       <PopoverContent
         className="w-44 p-1"
@@ -99,7 +99,7 @@ export default function PriorityPicker({ value, onChange }: PriorityPickerProps)
               onChange(opt.value)
               setOpen(false)
             }}
-            className="w-full flex items-center gap-2.5 px-2 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors"
+            className="cursor-pointer w-full flex items-center gap-2.5 px-2 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors"
           >
             <opt.Icon className={`w-4 h-4 shrink-0 ${opt.iconClass}`} />
             <span className={value === opt.value ? 'font-medium' : ''}>{opt.label}</span>

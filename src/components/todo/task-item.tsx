@@ -8,8 +8,18 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import StatusToggle from "./status-toggle";
 import EditTaskSheet from "./edit-task-sheet";
 import { PriorityIcon } from "./priority-picker";
@@ -59,6 +69,7 @@ export default function TaskItem({
   const [isHovered, setIsHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isTouchSelected, setIsTouchSelected] = useState(false);
 
   const rowRef = useRef<HTMLDivElement>(null);
@@ -197,7 +208,20 @@ export default function TaskItem({
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => onDelete(task.id)}
+                    onClick={() => {
+                      navigator.clipboard.writeText(task.title);
+                      setMenuOpen(false);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    Copy text
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setDeleteConfirmOpen(true);
+                    }}
                     className="cursor-pointer text-destructive focus:text-destructive"
                   >
                     Delete
@@ -241,6 +265,34 @@ export default function TaskItem({
         groups={groups}
         onGroupCreated={onGroupCreated}
       />
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete task?</DialogTitle>
+            <DialogDescription>
+              &ldquo;{task.title}&rdquo; will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setDeleteConfirmOpen(false);
+                onDelete(task.id);
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

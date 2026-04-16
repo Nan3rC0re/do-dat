@@ -28,7 +28,7 @@ export default function FilterNav() {
             <button
               key={href}
               onClick={() => router.push(href)}
-              className="relative px-3 py-1 text-sm font-medium rounded-full transition-colors duration-100 whitespace-nowrap focus-visible:outline-none"
+              className="relative cursor-pointer px-3 py-1 text-sm font-medium rounded-full transition-colors duration-100 whitespace-nowrap focus-visible:outline-none"
               style={{ color: isActive ? "var(--foreground)" : "var(--muted-foreground)" }}
             >
               {isActive && (

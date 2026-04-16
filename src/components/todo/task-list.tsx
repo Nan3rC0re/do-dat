@@ -288,7 +288,7 @@ export default function TaskList({
                 <div key={month.label}>
                   <button
                     onClick={() => toggleMonth(month.label)}
-                    className="flex items-center gap-2 w-full text-left px-1 py-4 group hover:bg-neutral-100 rounded-md"
+                    className="cursor-pointer flex items-center gap-2 w-full text-left px-1 py-4 group hover:bg-neutral-100 rounded-md"
                   >
                     <motion.div
                       animate={{ rotate: isCollapsed ? -90 : 0 }}

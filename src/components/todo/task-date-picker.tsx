@@ -28,7 +28,7 @@ export default function TaskDatePicker({ value, onChange }: TaskDatePickerProps)
           <PopoverTrigger asChild>
             <button
               type="button"
-              className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
+              className={`cursor-pointer flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
                 hasDate
                   ? 'bg-sky-100 text-sky-700 font-medium'
                   : 'text-muted-foreground hover:text-foreground'
@@ -39,7 +39,7 @@ export default function TaskDatePicker({ value, onChange }: TaskDatePickerProps)
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent className="text-[10px] px-2 py-1">Due date</TooltipContent>
+        <TooltipContent side="bottom" className="text-[10px] px-2 py-1">Due date</TooltipContent>
       </Tooltip>
       <PopoverContent className="w-auto p-0" align="start" avoidCollisions collisionPadding={8}>
         <Calendar
@@ -59,7 +59,7 @@ export default function TaskDatePicker({ value, onChange }: TaskDatePickerProps)
                 onChange(null)
                 setOpen(false)
               }}
-              className="w-full text-sm text-muted-foreground hover:text-foreground py-1 transition-colors"
+              className="cursor-pointer w-full text-sm text-muted-foreground hover:text-foreground py-1 transition-colors"
             >
               Clear date
             </button>

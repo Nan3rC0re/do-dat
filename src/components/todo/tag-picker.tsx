@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Tag, Check, Plus } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { createTag } from '@/lib/actions/tags'
 import type { Tag as TagType } from '@/lib/db/schema'
 
@@ -102,15 +103,17 @@ export default function TagPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
-            hasSelected
-              ? 'bg-neutral-100 text-foreground font-medium'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={`cursor-pointer flex items-center justify-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
+                hasSelected
+                  ? 'bg-neutral-100 text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
           {hasSelected ? (
             <>
               {selectedTags.slice(0, 2).map((tag) => (
@@ -130,16 +133,19 @@ export default function TagPicker({
               <span>Tags</span>
             </>
           )}
-        </button>
-      </PopoverTrigger>
+            </button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-[10px] px-2 py-1">Tags</TooltipContent>
+      </Tooltip>
       <PopoverContent
-        className="w-56 p-0"
+        className="w-44 p-1"
         align="start"
         avoidCollisions
         collisionPadding={8}
       >
         {/* Search / create input */}
-        <div className="px-3 py-2 border-b border-neutral-100">
+        <div className="px-2 py-1.5 border-b border-neutral-100 mb-1">
           <input
             ref={inputRef}
             value={search}
@@ -152,27 +158,27 @@ export default function TagPicker({
               }
               if (e.key === 'Escape') setOpen(false)
             }}
-            placeholder="Search or create tag…"
-            className="w-full text-xs outline-none bg-transparent placeholder:text-muted-foreground"
+            placeholder="Search or create…"
+            className="w-full text-sm outline-none bg-transparent placeholder:text-muted-foreground"
           />
         </div>
 
         {/* List */}
-        <div className="py-1 max-h-48 overflow-y-auto">
+        <div className="max-h-48 overflow-y-auto">
           {showCreate && (
             <button
               type="button"
               onClick={handleCreate}
               disabled={creating}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-accent transition-colors disabled:opacity-50"
+              className="cursor-pointer w-full flex items-center gap-2.5 px-2 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors disabled:opacity-50"
             >
-              <Plus className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+              <Plus className="w-4 h-4 shrink-0 text-muted-foreground" />
               <span>Create &ldquo;{search.trim()}&rdquo;</span>
             </button>
           )}
 
           {filtered.length === 0 && !showCreate && (
-            <p className="px-3 py-2 text-xs text-muted-foreground">No tags found</p>
+            <p className="px-2 py-1.5 text-sm text-muted-foreground">No tags found</p>
           )}
 
           {filtered.map((tag) => {
@@ -182,14 +188,14 @@ export default function TagPicker({
                 key={tag.id}
                 type="button"
                 onClick={() => toggle(tag.id)}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-accent transition-colors ${
+                className={`cursor-pointer w-full flex items-center gap-2.5 px-2 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors ${
                   isSelected ? 'font-medium' : ''
                 }`}
               >
                 <ColorDot color={tag.color} />
                 <span className="flex-1 text-left">{tag.name}</span>
                 {isSelected && (
-                  <Check className="w-3.5 h-3.5 text-muted-foreground ml-auto shrink-0" />
+                  <Check className="w-4 h-4 text-muted-foreground ml-auto shrink-0" />
                 )}
               </button>
             )

@@ -3,10 +3,11 @@
 import { useOptimistic, useTransition, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { format, isBefore, startOfDay } from "date-fns";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import TaskItem from "./task-item";
 import AddTaskForm from "./add-task-form";
 import FilterButton, { DEFAULT_FILTERS, type FilterState } from "./filter-button";
+import { PRIORITY_OPTIONS } from "./priority-picker";
 import { createTask, updateTaskStatus, deleteTask, updateTask } from "@/lib/actions/tasks";
 import { setTaskTags } from "@/lib/actions/tags";
 import { toast } from "sonner";
@@ -204,7 +205,10 @@ export default function TaskList({
 
   // Apply filters — completingIds tasks always bypass filter to avoid interrupting exit animation
   const filteredTasks = mode === "completed"
-    ? visibleTasks
+    ? visibleTasks.filter((task) => {
+        if (filters.tagIds.length > 0 && !filters.tagIds.some((id) => task.tags.some((t) => t.id === id))) return false
+        return true
+      })
     : visibleTasks.filter((task) => {
         if (completingIds.has(task.id)) return true
         if (filters.status !== "all" && task.status !== filters.status) return false
@@ -248,10 +252,63 @@ export default function TaskList({
     <div className="space-y-4 pb-16">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        {showAddForm && (
-          <FilterButton filters={filters} onChange={setFilters} allTags={allTags} />
+        {(showAddForm || mode === "completed") && (
+          <FilterButton
+            filters={filters}
+            onChange={setFilters}
+            allTags={allTags}
+            tagsOnly={mode === "completed"}
+          />
         )}
       </div>
+
+      {showAddForm && (filters.status !== "all" || filters.priority !== "all" || filters.tagIds.length > 0) && (
+        <div className="flex flex-wrap gap-1.5">
+          {filters.status !== "all" && (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-neutral-100 text-foreground font-medium">
+              {filters.status === "not_started" ? "Not started" : "In progress"}
+              <button
+                type="button"
+                onClick={() => setFilters((f) => ({ ...f, status: "all" }))}
+                className="cursor-pointer ml-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear status filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {filters.priority !== "all" && (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-neutral-100 text-foreground font-medium">
+              {PRIORITY_OPTIONS.find((o) => o.value === filters.priority)?.label}
+              <button
+                type="button"
+                onClick={() => setFilters((f) => ({ ...f, priority: "all" }))}
+                className="cursor-pointer ml-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear priority filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {filters.tagIds.map((tagId) => {
+            const tag = allTags.find((t) => t.id === tagId)
+            if (!tag) return null
+            return (
+              <span key={tagId} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-neutral-100 text-foreground font-medium">
+                {tag.name}
+                <button
+                  type="button"
+                  onClick={() => setFilters((f) => ({ ...f, tagIds: f.tagIds.filter((id) => id !== tagId) }))}
+                  className="cursor-pointer ml-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={`Clear ${tag.name} tag filter`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )
+          })}
+        </div>
+      )}
 
       {showAddForm && (
         <AddTaskForm
@@ -288,7 +345,7 @@ export default function TaskList({
                 <div key={month.label}>
                   <button
                     onClick={() => toggleMonth(month.label)}
-                    className="flex items-center gap-2 w-full text-left px-1 py-4 group hover:bg-neutral-100 rounded-md"
+                    className="cursor-pointer flex items-center gap-2 w-full text-left px-1 py-4 group hover:bg-neutral-100 rounded-md"
                   >
                     <motion.div
                       animate={{ rotate: isCollapsed ? -90 : 0 }}

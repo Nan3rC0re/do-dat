@@ -76,7 +76,7 @@ export default function StatusToggle({ status, onStatusChange }: StatusTogglePro
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="shrink-0 w-5 h-5 outline-none rounded-full"
+          className="shrink-0 w-5 h-5 cursor-pointer outline-none rounded-full"
           aria-label={`Status: ${status}`}
         >
           <StatusIcon status={status} />

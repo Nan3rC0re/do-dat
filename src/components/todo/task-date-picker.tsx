@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { format, isToday } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Calendar } from '@/components/ui/calendar'
 
 interface TaskDatePickerProps {
@@ -22,19 +23,24 @@ export default function TaskDatePicker({ value, onChange }: TaskDatePickerProps)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
-            hasDate
-              ? 'bg-sky-100 text-sky-700 font-medium'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <CalendarIcon className="w-3.5 h-3.5 shrink-0" />
-          <span>{hasDate ? formatDate(value!) : 'Date'}</span>
-        </button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={`cursor-pointer flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
+                hasDate
+                  ? 'bg-sky-100 text-sky-700 font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <CalendarIcon className="w-3.5 h-3.5 shrink-0" />
+              <span>{hasDate ? formatDate(value!) : 'Date'}</span>
+            </button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-[10px] px-2 py-1">Due date</TooltipContent>
+      </Tooltip>
       <PopoverContent className="w-auto p-0" align="start" avoidCollisions collisionPadding={8}>
         <Calendar
           mode="single"
@@ -53,7 +59,7 @@ export default function TaskDatePicker({ value, onChange }: TaskDatePickerProps)
                 onChange(null)
                 setOpen(false)
               }}
-              className="w-full text-sm text-muted-foreground hover:text-foreground py-1 transition-colors"
+              className="cursor-pointer w-full text-sm text-muted-foreground hover:text-foreground py-1 transition-colors"
             >
               Clear date
             </button>

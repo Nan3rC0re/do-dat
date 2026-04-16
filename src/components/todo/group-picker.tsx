@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { Tag } from "lucide-react";
-import { springs } from "@/lib/motion";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { createGroup } from "@/lib/actions/groups";
 import type { Group } from "@/lib/db/schema";
 
@@ -23,23 +22,15 @@ export default function GroupPicker({
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedGroup = groups.find((g) => g.id === value) ?? null;
 
   useEffect(() => {
-    function onMouseDown(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+    if (open) {
+      setNewName("");
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
-  }, []);
-
-  useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 50);
   }, [open]);
 
   async function handleCreate() {
@@ -58,81 +49,78 @@ export default function GroupPicker({
   }
 
   return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
-          selectedGroup
-            ? "bg-amber-100 text-amber-700 font-medium"
-            : "text-muted-foreground hover:text-foreground"
-        }`}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`flex items-center gap-1.5 text-sm px-2.5 py-1 rounded-full transition-colors duration-150 ${
+            selectedGroup
+              ? "bg-amber-100 text-amber-700 font-medium"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Tag className="w-3.5 h-3.5 shrink-0" />
+          <span>{selectedGroup ? selectedGroup.name : "Group"}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-52 p-0"
+        align="start"
+        avoidCollisions
+        collisionPadding={8}
       >
-        <Tag className="w-3.5 h-3.5 shrink-0" />
-        <span>{selectedGroup ? selectedGroup.name : "Group"}</span>
-      </button>
+        {/* New group input at the top */}
+        <div className="px-3 py-2 flex items-center gap-1.5 border-b border-neutral-100">
+          <input
+            ref={inputRef}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); handleCreate(); }
+              if (e.key === "Escape") setOpen(false);
+            }}
+            placeholder="New group…"
+            className="flex-1 text-xs outline-none bg-transparent placeholder:text-muted-foreground"
+          />
+          {newName.trim() && (
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={creating}
+              className="text-xs text-amber-600 font-medium disabled:opacity-50 shrink-0"
+            >
+              Add
+            </button>
+          )}
+        </div>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }}
-            transition={springs.smooth}
-            className="absolute top-full left-0 mt-1 w-52 bg-white border border-neutral-200 rounded-xl shadow-lg z-50 overflow-hidden"
-          >
-            {/* New group input at the top */}
-            <div className="px-3 py-2 flex items-center gap-1.5 border-b border-neutral-100">
-              <input
-                ref={inputRef}
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); handleCreate(); }
-                  if (e.key === "Escape") setOpen(false);
-                }}
-                placeholder="New group…"
-                className="flex-1 text-xs outline-none bg-transparent placeholder:text-muted-foreground"
-              />
-              {newName.trim() && (
-                <button
-                  type="button"
-                  onClick={handleCreate}
-                  disabled={creating}
-                  className="text-xs text-amber-600 font-medium disabled:opacity-50 shrink-0"
-                >
-                  Add
-                </button>
-              )}
-            </div>
+        {/* Existing groups */}
+        <div className="py-1">
+          {selectedGroup && (
+            <button
+              type="button"
+              onClick={() => { onChange(null); setOpen(false); }}
+              className="w-full text-left text-xs px-3 py-2 hover:bg-neutral-50 text-muted-foreground transition-colors"
+            >
+              No group
+            </button>
+          )}
 
-            {/* Existing groups */}
-            {selectedGroup && (
-              <button
-                type="button"
-                onClick={() => { onChange(null); setOpen(false); }}
-                className="w-full text-left text-xs px-3 py-2 hover:bg-neutral-50 text-muted-foreground transition-colors"
-              >
-                No group
-              </button>
-            )}
-
-            {groups.map((group) => (
-              <button
-                key={group.id}
-                type="button"
-                onClick={() => { onChange(group.id); setOpen(false); }}
-                className={`w-full text-left text-xs px-3 py-2 flex items-center gap-2 hover:bg-amber-50 transition-colors ${
-                  group.id === value ? "text-amber-700 font-medium" : "text-foreground"
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-                {group.name}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          {groups.map((group) => (
+            <button
+              key={group.id}
+              type="button"
+              onClick={() => { onChange(group.id); setOpen(false); }}
+              className={`w-full text-left text-xs px-3 py-2 flex items-center gap-2 hover:bg-amber-50 transition-colors ${
+                group.id === value ? "text-amber-700 font-medium" : "text-foreground"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+              {group.name}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

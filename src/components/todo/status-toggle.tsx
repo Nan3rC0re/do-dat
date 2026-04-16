@@ -82,7 +82,7 @@ export default function StatusToggle({ status, onStatusChange }: StatusTogglePro
           <StatusIcon status={status} />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-40">
+      <DropdownMenuContent align="start" className="w-40" avoidCollisions collisionPadding={8}>
         {STATUS_OPTIONS.map((opt) => (
           <DropdownMenuItem
             key={opt.value}

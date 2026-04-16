@@ -35,7 +35,7 @@ export default function TaskDatePicker({ value, onChange }: TaskDatePickerProps)
           <span>{hasDate ? formatDate(value!) : 'Date'}</span>
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0" align="start" avoidCollisions collisionPadding={8}>
         <Calendar
           mode="single"
           selected={value ?? undefined}

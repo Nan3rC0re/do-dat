@@ -12,18 +12,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import StatusToggle from "./status-toggle";
 import EditTaskSheet from "./edit-task-sheet";
+import { PriorityIcon } from "./priority-picker";
+import { TagPill } from "./tag-picker";
 import { springs } from "@/lib/motion";
-import type { Task, TaskStatus, Group } from "@/lib/db/schema";
+import type { TaskWithTags, TaskStatus, TaskPriority, Group, Tag } from "@/lib/db/schema";
 
 interface TaskItemProps {
-  task: Task;
+  task: TaskWithTags;
   mode: "inbox" | "today" | "incoming" | "completed";
   group?: Group;
   groups?: Group[];
+  allTags: Tag[];
   isExiting?: boolean;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onDelete: (taskId: string) => void;
-  onUpdate: (taskId: string, title: string, dueDate: Date | null, groupId: string | null) => void;
+  onUpdate: (taskId: string, title: string, dueDate: Date | null, groupId: string | null, priority: TaskPriority) => void;
+  onTagsChange: (taskId: string, tagIds: string[]) => void;
+  onTagCreated: (tag: Tag) => void;
   onGroupCreated?: (group: Group) => void;
 }
 
@@ -42,10 +47,13 @@ export default function TaskItem({
   mode,
   group,
   groups = [],
+  allTags,
   isExiting = false,
   onStatusChange,
   onDelete,
   onUpdate,
+  onTagsChange,
+  onTagCreated,
   onGroupCreated,
 }: TaskItemProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -76,16 +84,17 @@ export default function TaskItem({
 
   const dateLabel =
     mode === "completed"
-      ? formatTaskDate(task.updatedAt, true)       // show "Today" for tasks completed today
+      ? formatTaskDate(task.updatedAt, true)
       : isOverdue
-        ? format(taskDueDate!, "MMM d")            // always show overdue date in today view
-        : formatTaskDate(task.dueDate);             // hide "Today" — user already knows today's date
+        ? format(taskDueDate!, "MMM d")
+        : formatTaskDate(task.dueDate);
 
   const showActions = isHovered || menuOpen || isTouchSelected;
-  const showMeta = !!(dateLabel || group);
+  const showMeta = !!(dateLabel || group || task.tags.length > 0);
+  const showPriorityIcon = task.priority !== "no_priority" && !isCompleted;
 
-  function handleOptimisticUpdate(title: string, dueDate: Date | null, groupId: string | null) {
-    onUpdate(task.id, title, dueDate, groupId);
+  function handleOptimisticUpdate(title: string, dueDate: Date | null, groupId: string | null, priority: TaskPriority) {
+    onUpdate(task.id, title, dueDate, groupId, priority);
   }
 
   return (
@@ -128,7 +137,14 @@ export default function TaskItem({
         <div className="flex-1 min-w-0">
           {/* Title row */}
           <div className="flex items-start gap-2">
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 flex items-start gap-1.5">
+              {/* Priority icon — inline before title */}
+              {showPriorityIcon && (
+                <div className="pt-0.5 shrink-0">
+                  <PriorityIcon priority={task.priority} className="w-3.5 h-3.5" />
+                </div>
+              )}
+
               {/* inline-block so the absolute line is scoped to the text width, not the full container */}
               <span
                 className={`relative inline-block text-sm leading-snug ${
@@ -172,7 +188,7 @@ export default function TaskItem({
                     <MoreHorizontal className="w-4 h-4" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-36">
+                <DropdownMenuContent align="end" className="w-36" avoidCollisions collisionPadding={8}>
                   <DropdownMenuItem
                     onClick={() => {
                       setMenuOpen(false);
@@ -193,9 +209,9 @@ export default function TaskItem({
             </div>
           </div>
 
-          {/* Meta row — date + group badge */}
+          {/* Meta row — date + group badge + tags */}
           {showMeta && (
-            <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
               {dateLabel && (
                 <span className={`text-xs ${isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
                   {dateLabel}
@@ -208,6 +224,9 @@ export default function TaskItem({
                 </span>
               )}
               */}
+              {task.tags.map((tag) => (
+                <TagPill key={tag.id} tag={tag} />
+              ))}
             </div>
           )}
         </div>
@@ -218,6 +237,9 @@ export default function TaskItem({
         open={editOpen}
         onOpenChange={setEditOpen}
         onOptimisticUpdate={handleOptimisticUpdate}
+        onTagsChange={(tagIds) => onTagsChange(task.id, tagIds)}
+        onTagCreated={onTagCreated}
+        allTags={allTags}
         groups={groups}
         onGroupCreated={onGroupCreated}
       />

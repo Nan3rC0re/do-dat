@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
-import { tasks, type TaskStatus } from '@/lib/db/schema'
+import { tasks, taskTags, type TaskStatus, type TaskPriority } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -28,6 +28,8 @@ const createTaskSchema = z.object({
   title: z.string().min(1).max(500),
   dueDate: z.date().optional(),
   groupId: z.string().uuid().nullable().optional(),
+  priority: z.enum(['no_priority', 'low', 'medium', 'high']).optional(),
+  tagIds: z.array(z.string().uuid()).optional(),
 })
 
 export async function createTask(input: {
@@ -35,6 +37,8 @@ export async function createTask(input: {
   dueDate?: Date
   id?: string
   groupId?: string | null
+  priority?: TaskPriority
+  tagIds?: string[]
 }) {
   const userId = await getAuthUserId()
   const parsed = createTaskSchema.parse(input)
@@ -44,10 +48,17 @@ export async function createTask(input: {
     title: parsed.title,
     dueDate: parsed.dueDate ?? null,
     groupId: parsed.groupId ?? null,
+    priority: parsed.priority ?? 'no_priority',
   }
   if (parsed.id) insertValues.id = parsed.id
 
   const [task] = await db.insert(tasks).values(insertValues).returning()
+
+  if (parsed.tagIds && parsed.tagIds.length > 0) {
+    await db.insert(taskTags).values(
+      parsed.tagIds.map((tagId) => ({ taskId: task.id, tagId })),
+    )
+  }
 
   revalidateAllTaskPaths()
   return task
@@ -78,6 +89,7 @@ const updateTaskSchema = z.object({
   title: z.string().min(1).max(500),
   dueDate: z.date().nullable().optional(),
   groupId: z.string().uuid().nullable().optional(),
+  priority: z.enum(['no_priority', 'low', 'medium', 'high']).optional(),
 })
 
 export async function updateTask(input: {
@@ -85,6 +97,7 @@ export async function updateTask(input: {
   title: string
   dueDate?: Date | null
   groupId?: string | null
+  priority?: TaskPriority
 }) {
   const userId = await getAuthUserId()
   const parsed = updateTaskSchema.parse(input)
@@ -95,6 +108,7 @@ export async function updateTask(input: {
     groupId: parsed.groupId ?? null,
     updatedAt: new Date(),
   }
+  if (parsed.priority !== undefined) setValues.priority = parsed.priority
 
   await db
     .update(tasks)

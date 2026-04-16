@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { SlidersHorizontal, X } from 'lucide-react'
+import { SlidersHorizontal, ChevronRight, Check } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PriorityIcon, PRIORITY_OPTIONS } from './priority-picker'
@@ -20,47 +20,60 @@ export const DEFAULT_FILTERS: FilterState = {
   tagIds: [],
 }
 
+type SubFilter = 'status' | 'priority' | 'tags'
+
 interface FilterButtonProps {
   filters: FilterState
   onChange: (filters: FilterState) => void
   allTags: Tag[]
 }
 
-const STATUS_OPTIONS: { value: FilterState['status']; label: string }[] = [
-  { value: 'all', label: 'All' },
+const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: 'not_started', label: 'Not started' },
   { value: 'in_progress', label: 'In progress' },
 ]
 
+function StatusDot({ status }: { status: TaskStatus }) {
+  if (status === 'not_started') return <span className="w-3.5 h-3.5 rounded-full border-2 border-neutral-300 shrink-0" />
+  return <span className="w-3.5 h-3.5 rounded-full border-2 border-dashed border-yellow-400 shrink-0" />
+}
+
+function CheckBox({ checked }: { checked: boolean }) {
+  return (
+    <span className={`w-3.5 h-3.5 rounded shrink-0 border flex items-center justify-center transition-colors ${
+      checked ? 'bg-foreground border-foreground' : 'border-neutral-300'
+    }`}>
+      {checked && <Check className="w-2.5 h-2.5 text-background" strokeWidth={3} />}
+    </span>
+  )
+}
+
 export default function FilterButton({ filters, onChange, allTags }: FilterButtonProps) {
   const [open, setOpen] = useState(false)
+  const [activeFilter, setActiveFilter] = useState<SubFilter | null>(null)
 
   const activeCount =
     (filters.status !== 'all' ? 1 : 0) +
     (filters.priority !== 'all' ? 1 : 0) +
     filters.tagIds.length
 
-  function setStatus(status: FilterState['status']) {
-    onChange({ ...filters, status })
+  function handleOpenChange(o: boolean) {
+    setOpen(o)
+    if (!o) setActiveFilter(null)
   }
 
-  function setPriority(priority: FilterState['priority']) {
-    onChange({ ...filters, priority })
+  function toggleSubFilter(sub: SubFilter) {
+    setActiveFilter((prev) => (prev === sub ? null : sub))
   }
 
-  function toggleTag(tagId: string) {
-    const tagIds = filters.tagIds.includes(tagId)
-      ? filters.tagIds.filter((id) => id !== tagId)
-      : [...filters.tagIds, tagId]
-    onChange({ ...filters, tagIds })
-  }
-
-  function clearAll() {
-    onChange(DEFAULT_FILTERS)
-  }
+  const categories: { key: SubFilter; label: string; hasActive: boolean }[] = [
+    { key: 'status',   label: 'Status',   hasActive: filters.status !== 'all' },
+    { key: 'priority', label: 'Priority', hasActive: filters.priority !== 'all' },
+    { key: 'tags',     label: 'Tags',     hasActive: filters.tagIds.length > 0 },
+  ]
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
@@ -69,7 +82,7 @@ export default function FilterButton({ filters, onChange, allTags }: FilterButto
               className={`cursor-pointer relative flex items-center justify-center w-7 h-7 rounded-full transition-colors duration-150 ${
                 activeCount > 0
                   ? 'bg-violet-100 text-violet-700'
-                  : 'text-foreground hover:bg-neutral-200'
+                  : 'text-muted-foreground hover:bg-neutral-100 hover:text-foreground'
               }`}
               aria-label="Filter tasks"
             >
@@ -82,114 +95,128 @@ export default function FilterButton({ filters, onChange, allTags }: FilterButto
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent className="text-[10px] px-2 py-1">Filter tasks</TooltipContent>
+        <TooltipContent side="bottom" className="text-[10px] px-2 py-1">Filter tasks</TooltipContent>
       </Tooltip>
 
       <PopoverContent
-        className="w-64 p-3 space-y-4"
+        className="w-44 p-1"
         align="end"
         avoidCollisions
         collisionPadding={8}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-foreground uppercase tracking-wide">
-            Filters
-          </span>
-          {activeCount > 0 && (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="cursor-pointer flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="w-3 h-3" />
-              Clear all
-            </button>
-          )}
-        </div>
-
-        {/* Status */}
-        <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground font-medium">Status</p>
-          <div className="flex flex-wrap gap-1.5">
-            {STATUS_OPTIONS.map((opt) => (
+        {/* Category rows — each is the trigger for its own sub-dropdown */}
+        {categories.map((cat) => (
+          <Popover
+            key={cat.key}
+            open={activeFilter === cat.key}
+            onOpenChange={(o) => setActiveFilter(o ? cat.key : null)}
+          >
+            <PopoverTrigger asChild>
               <button
-                key={opt.value}
                 type="button"
-                onClick={() => setStatus(opt.value)}
-                className={`cursor-pointer text-xs px-2.5 py-1 rounded-full transition-colors ${
-                  filters.status === opt.value
-                    ? 'bg-neutral-900 text-white font-medium'
-                    : 'bg-neutral-100 text-foreground hover:bg-neutral-200'
+                className={`cursor-pointer w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors ${
+                  activeFilter === cat.key ? 'bg-accent' : 'hover:bg-accent'
                 }`}
               >
-                {opt.label}
+                <span className={`flex-1 text-left ${activeFilter === cat.key ? 'font-medium' : ''}`}>
+                  {cat.label}
+                </span>
+                {cat.hasActive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
+                )}
+                <ChevronRight className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                  activeFilter === cat.key ? 'text-foreground' : 'text-muted-foreground'
+                }`} />
               </button>
-            ))}
-          </div>
-        </div>
+            </PopoverTrigger>
 
-        {/* Priority */}
-        <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground font-medium">Priority</p>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => setPriority('all')}
-              className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
-                filters.priority === 'all'
-                  ? 'bg-neutral-900 text-white font-medium'
-                  : 'bg-neutral-100 text-foreground hover:bg-neutral-200'
-              }`}
+            <PopoverContent
+              side="left"
+              align="start"
+              sideOffset={8}
+              className="w-44 p-1"
+              avoidCollisions
+              collisionPadding={8}
+              onInteractOutside={(e) => {
+                // Don't dismiss when clicking inside the parent popover
+                e.preventDefault()
+              }}
             >
-              All
-            </button>
-            {PRIORITY_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setPriority(opt.value)}
-                className={`cursor-pointer flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors ${
-                  filters.priority === opt.value
-                    ? 'bg-neutral-900 text-white font-medium'
-                    : 'bg-neutral-100 text-foreground hover:bg-neutral-200'
-                }`}
-              >
-                <PriorityIcon
-                  priority={opt.value}
-                  className={`w-3 h-3 shrink-0 ${filters.priority === opt.value ? '!text-white' : ''}`}
-                />
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Tags */}
-        {allTags.length > 0 && (
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground font-medium">Tags</p>
-            <div className="flex flex-wrap gap-1.5">
-              {allTags.map((tag) => {
-                const isActive = filters.tagIds.includes(tag.id)
+              {/* Status sub-dropdown */}
+              {cat.key === 'status' && STATUS_OPTIONS.map((opt) => {
+                const isActive = filters.status === opt.value
                 return (
                   <button
-                    key={tag.id}
+                    key={opt.value}
                     type="button"
-                    onClick={() => toggleTag(tag.id)}
-                    className={`cursor-pointer flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors ${
-                      isActive
-                        ? 'bg-neutral-900 text-white font-medium'
-                        : 'bg-neutral-100 text-foreground hover:bg-neutral-200'
-                    }`}
+                    onClick={() => onChange({ ...filters, status: isActive ? 'all' : opt.value })}
+                    className="cursor-pointer w-full flex items-center gap-2.5 px-2 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors"
                   >
-                    <ColorDot color={tag.color} className={isActive ? '!bg-white/70' : ''} />
-                    {tag.name}
+                    <CheckBox checked={isActive} />
+                    <StatusDot status={opt.value} />
+                    <span className={isActive ? 'font-medium' : ''}>{opt.label}</span>
                   </button>
                 )
               })}
-            </div>
-          </div>
+
+              {/* Priority sub-dropdown */}
+              {cat.key === 'priority' && PRIORITY_OPTIONS.map((opt) => {
+                const isActive = filters.priority === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onChange({ ...filters, priority: isActive ? 'all' : opt.value })}
+                    className="cursor-pointer w-full flex items-center gap-2.5 px-2 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors"
+                  >
+                    <CheckBox checked={isActive} />
+                    <PriorityIcon priority={opt.value} className="w-3.5 h-3.5 shrink-0" />
+                    <span className={isActive ? 'font-medium' : ''}>{opt.label}</span>
+                  </button>
+                )
+              })}
+
+              {/* Tags sub-dropdown */}
+              {cat.key === 'tags' && (
+                allTags.length === 0 ? (
+                  <p className="px-2 py-1.5 text-sm text-muted-foreground">No tags yet</p>
+                ) : (
+                  allTags.map((tag) => {
+                    const isActive = filters.tagIds.includes(tag.id)
+                    const newTagIds = isActive
+                      ? filters.tagIds.filter((id) => id !== tag.id)
+                      : [...filters.tagIds, tag.id]
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => onChange({ ...filters, tagIds: newTagIds })}
+                        className="cursor-pointer w-full flex items-center gap-2.5 px-2 py-1.5 text-sm rounded-sm hover:bg-accent transition-colors"
+                      >
+                        <CheckBox checked={isActive} />
+                        <ColorDot color={tag.color} />
+                        <span className={`flex-1 text-left ${isActive ? 'font-medium' : ''}`}>{tag.name}</span>
+                      </button>
+                    )
+                  })
+                )
+              )}
+            </PopoverContent>
+          </Popover>
+        ))}
+
+        {/* Clear all */}
+        {activeCount > 0 && (
+          <>
+            <div className="my-1 h-px bg-neutral-100" />
+            <button
+              type="button"
+              onClick={() => { onChange(DEFAULT_FILTERS); setActiveFilter(null) }}
+              className="cursor-pointer w-full flex items-center px-2 py-1.5 text-sm text-muted-foreground rounded-sm hover:bg-accent hover:text-foreground transition-colors"
+            >
+              Clear all
+            </button>
+          </>
         )}
       </PopoverContent>
     </Popover>
